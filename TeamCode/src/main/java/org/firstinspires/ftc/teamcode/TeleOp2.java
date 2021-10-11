@@ -86,10 +86,10 @@ public class TeleOp2 extends LinearOpMode {
         // Initialize the hardware variables. Note that the strings used here as parameters
         // to 'get' must correspond to the names assigned during the robot configuration
         // step (using the FTC Robot Controller app on the phone).
-        driveFrontLeft = hardwareMap.get(DcMotor.class, "upleftdrive");
-        driveFrontRight = hardwareMap.get(DcMotor.class, "uprightdrive");
-        driveBackLeft = hardwareMap.get(DcMotor.class, "downleftdrive");
-        driveBackRight = hardwareMap.get(DcMotor.class, "downrightdrive");
+        driveFrontLeft = hardwareMap.get(DcMotor.class, "driveFrontLeft");
+        driveFrontRight = hardwareMap.get(DcMotor.class, "driveFrontRight");
+        driveBackLeft = hardwareMap.get(DcMotor.class, "driveBackLeft");
+        driveBackRight = hardwareMap.get(DcMotor.class, "driveBackRight");
 
         while (opModeIsActive()) {
             runMecanum(gamepad1.left_stick_x, gamepad1.left_stick_y,
