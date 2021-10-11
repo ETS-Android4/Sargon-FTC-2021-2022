@@ -62,6 +62,28 @@ public class TeleOp1 extends LinearOpMode {
     private DcMotorEx driveBackLeft = null;
     private DcMotorEx driveBackRight = null;
 
+    public void driveMecanum(double heading, double speed, double rotate)
+    {
+
+    }
+
+    public void clampWithRatio(Double[] elms)
+    {
+        // Find maximum value out of entire array
+        double max = Math.abs(elms[0]);
+        for (int i = 0; i < elms.length; i++)
+        {
+            max = Math.max(max, Math.abs(elms[i]));
+        }
+
+        // Divide all elements by the maximum while keeping sign
+        for (int i = 0; i < elms.length; i++)
+        {
+            elms[i] = elms[i] / max;
+        }
+    }
+
+
     public void moveMecanum(double speed, double Turn, double Strafe)
     {
         double r = Math.hypot(gamepad1.left_stick_x, gamepad1.left_stick_y);
@@ -95,6 +117,9 @@ public class TeleOp1 extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
             double controllerHeading = Math.atan2(-gamepad1.left_stick_y, gamepad1.left_stick_x);
+
+            driveMecanum(controllerHeading, 1.0f,
+                    gamepad1.left_trigger - gamepad1.right_trigger);
 
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
