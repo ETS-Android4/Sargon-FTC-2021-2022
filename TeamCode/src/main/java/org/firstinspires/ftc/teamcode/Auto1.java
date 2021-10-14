@@ -38,6 +38,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -76,8 +77,8 @@ import java.util.List;
  * is explained below.
  */
 
-@TeleOp(name="Auto1", group ="Autonomous")
-public class Auto1 extends OpMode {
+@Autonomous
+public class Auto1 extends LinearOpMode {
 
     /*
      * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
@@ -109,8 +110,7 @@ public class Auto1 extends OpMode {
 
     private boolean targetVisible       = false;
 
-    @Override
-    public void init() {
+    @Override public void runOpMode() {
         // Connect to the camera we are to use.  This name must match what is set up in Robot Configuration
         webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
 
@@ -162,10 +162,10 @@ public class Auto1 extends OpMode {
          */
 
         // Name and locate each trackable object
-        identifyTarget(0, "Blue Storage", -halfField, oneAndHalfTile, mmTargetHeight, 90, 0, 90);
-        identifyTarget(1, "Blue Alliance Wall", halfTile, halfField, mmTargetHeight, 90, 0, 0);
-        identifyTarget(2, "Red Storage", -halfField, -oneAndHalfTile, mmTargetHeight, 90, 0, 90);
-        identifyTarget(3, "Red Alliance Wall", halfTile, -halfField, mmTargetHeight, 90, 0, 180);
+        identifyTarget(0, "Blue Storage",       -halfField,  oneAndHalfTile, mmTargetHeight, 90, 0, 90);
+        identifyTarget(1, "Blue Alliance Wall",  halfTile,   halfField,      mmTargetHeight, 90, 0, 0);
+        identifyTarget(2, "Red Storage",        -halfField, -oneAndHalfTile, mmTargetHeight, 90, 0, 90);
+        identifyTarget(3, "Red Alliance Wall",   halfTile,  -halfField,      mmTargetHeight, 90, 0, 180);
 
         /*
          * Create a transformation matrix describing where the camera is on the robot.
@@ -187,9 +187,9 @@ public class Auto1 extends OpMode {
          *      In this example, it is centered on the robot (left-to-right and front-to-back), and 6 inches above ground level.
          */
 
-        final float CAMERA_FORWARD_DISPLACEMENT = 0.0f * mmPerInch;   // eg: Enter the forward distance from the center of the robot to the camera lens
+        final float CAMERA_FORWARD_DISPLACEMENT  = 0.0f * mmPerInch;   // eg: Enter the forward distance from the center of the robot to the camera lens
         final float CAMERA_VERTICAL_DISPLACEMENT = 6.0f * mmPerInch;   // eg: Camera is 6 Inches above ground
-        final float CAMERA_LEFT_DISPLACEMENT = 0.0f * mmPerInch;   // eg: Enter the left distance from the center of the robot to the camera lens
+        final float CAMERA_LEFT_DISPLACEMENT     = 0.0f * mmPerInch;   // eg: Enter the left distance from the center of the robot to the camera lens
 
         OpenGLMatrix cameraLocationOnRobot = OpenGLMatrix
                 .translation(CAMERA_FORWARD_DISPLACEMENT, CAMERA_LEFT_DISPLACEMENT, CAMERA_VERTICAL_DISPLACEMENT)
@@ -207,11 +207,7 @@ public class Auto1 extends OpMode {
          * CONSEQUENTLY do not put any driving commands in this loop.
          * To restore the normal opmode structure, just un-comment the following line:
          */
-    }
 
-    @Override
-    public void loop()
-    {
         // waitForStart();
 
         /* Note: To use the remote camera preview:
