@@ -39,6 +39,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -102,7 +104,7 @@ public class Auto1 extends LinearOpMode {
     private static final float halfTile         = 12 * mmPerInch;
     private static final float oneAndHalfTile   = 36 * mmPerInch;
 
-    // Class Members
+    // Camera
     private OpenGLMatrix lastLocation   = null;
     private VuforiaLocalizer vuforia    = null;
     private VuforiaTrackables targets   = null ;
@@ -110,7 +112,63 @@ public class Auto1 extends LinearOpMode {
 
     private boolean targetVisible       = false;
 
+    private ElapsedTime runtime = new ElapsedTime();
+
+    // Motors
+    private DcMotor driveFrontLeft = null;
+    private DcMotor driveFrontRight = null;
+    private DcMotor driveBackLeft = null;
+    private DcMotor driveBackRight = null;
+
+
+
+    private void mecanumDrive(double direction, double power)
+    {
+        double x = power * Math.cos(direction);
+        double y = power * Math.sin(direction);
+
+        double drive = -y;
+        double strafe = -x;
+
+        double frontLeftPower = drive + strafe;
+        double frontRightPower = -drive + strafe;
+        double backLeftPower = drive - strafe;
+        double backRightPower = -drive - strafe;
+
+        driveFrontLeft.setPower(frontLeftPower);
+        driveFrontRight.setPower(frontRightPower);
+        driveBackLeft.setPower(backLeftPower);
+        driveBackRight.setPower(backRightPower);
+    }
+
+    // Direction: Radians between -PI and PI
+    // Power: Double between 0 and 1
+    private void mecanumRotate(double direction, double power)
+    {
+        driveFrontLeft.setPower((direction / Math.PI) * power);
+        driveFrontRight.setPower((direction / Math.PI) * power);
+        driveBackLeft.setPower((direction / Math.PI) * power);
+        driveBackRight.setPower((direction / Math.PI) * power);
+    }
+
+
+
+
+
     @Override public void runOpMode() {
+        lastLocation = OpenGLMatrix.identityMatrix();
+
+        // Add motors
+        driveFrontLeft = hardwareMap.get(DcMotor.class, "driveFrontLeft");
+        driveFrontLeft.setDirection(DcMotor.Direction.REVERSE);
+        driveFrontRight = hardwareMap.get(DcMotor.class, "driveFrontRight");
+        driveFrontRight.setDirection(DcMotor.Direction.REVERSE);
+        driveBackLeft = hardwareMap.get(DcMotor.class, "driveBackLeft");
+        driveBackLeft.setDirection(DcMotor.Direction.FORWARD);
+        driveBackRight = hardwareMap.get(DcMotor.class, "driveBackRight");
+        driveBackRight.setDirection(DcMotor.Direction.FORWARD);
+
+        // Init image recognition
         // Connect to the camera we are to use.  This name must match what is set up in Robot Configuration
         webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
 
@@ -208,7 +266,7 @@ public class Auto1 extends LinearOpMode {
          * To restore the normal opmode structure, just un-comment the following line:
          */
 
-        // waitForStart();
+        waitForStart();
 
         /* Note: To use the remote camera preview:
          * AFTER you hit Init on the Driver Station, use the "options menu" to select "Camera Stream"
@@ -265,7 +323,7 @@ public class Auto1 extends LinearOpMode {
      * @param dx, dy, dz  Target offsets in x,y,z axes
      * @param rx, ry, rz  Target rotations in x,y,z axes
      */
-    void    identifyTarget(int targetIndex, String targetName, float dx, float dy, float dz, float rx, float ry, float rz) {
+    void identifyTarget(int targetIndex, String targetName, float dx, float dy, float dz, float rx, float ry, float rz) {
         VuforiaTrackable aTarget = targets.get(targetIndex);
         aTarget.setName(targetName);
         aTarget.setLocation(OpenGLMatrix.translation(dx, dy, dz)
