@@ -51,6 +51,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
+import org.firstinspires.ftc.teamcode.commands.GoTo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -104,73 +105,24 @@ public class Auto1 extends LinearOpMode {
     private static final float halfTile         = 12 * mmPerInch;
     private static final float oneAndHalfTile   = 36 * mmPerInch;
 
-    // Camera
-    private OpenGLMatrix lastLocation   = null;
     private VuforiaLocalizer vuforia    = null;
     private VuforiaTrackables targets   = null ;
     private WebcamName webcamName       = null;
 
     private boolean targetVisible       = false;
 
-    private ElapsedTime runtime = new ElapsedTime();
+    Robot robot;
 
-    // Motors
-    private DcMotor driveFrontLeft = null;
-    private DcMotor driveFrontRight = null;
-    private DcMotor driveBackLeft = null;
-    private DcMotor driveBackRight = null;
-
-
-
-    private void mecanumDrive(double direction, double power)
-    {
-        double x = power * Math.cos(direction);
-        double y = power * Math.sin(direction);
-
-        double drive = -y;
-        double strafe = -x;
-
-        double frontLeftPower = drive + strafe;
-        double frontRightPower = -drive + strafe;
-        double backLeftPower = drive - strafe;
-        double backRightPower = -drive - strafe;
-
-        driveFrontLeft.setPower(frontLeftPower);
-        driveFrontRight.setPower(frontRightPower);
-        driveBackLeft.setPower(backLeftPower);
-        driveBackRight.setPower(backRightPower);
-    }
-
-    // Direction: Radians between -PI and PI
-    // Power: Double between 0 and 1
-    private void mecanumRotate(double direction, double power)
-    {
-        driveFrontLeft.setPower((direction / Math.PI) * power);
-        driveFrontRight.setPower((direction / Math.PI) * power);
-        driveBackLeft.setPower((direction / Math.PI) * power);
-        driveBackRight.setPower((direction / Math.PI) * power);
-    }
-
-
+    List commands = new ArrayList();
 
 
 
     @Override public void runOpMode() {
-        lastLocation = OpenGLMatrix.identityMatrix();
+        robot = new Robot(telemetry, hardwareMap,
+                new String[]{"driveFrontLeft", "driveFrontRight", "driveBackLeft", "driveBackRight"},
+                "Webcam 1");
 
-        // Add motors
-        driveFrontLeft = hardwareMap.get(DcMotor.class, "driveFrontLeft");
-        driveFrontLeft.setDirection(DcMotor.Direction.REVERSE);
-        driveFrontRight = hardwareMap.get(DcMotor.class, "driveFrontRight");
-        driveFrontRight.setDirection(DcMotor.Direction.REVERSE);
-        driveBackLeft = hardwareMap.get(DcMotor.class, "driveBackLeft");
-        driveBackLeft.setDirection(DcMotor.Direction.FORWARD);
-        driveBackRight = hardwareMap.get(DcMotor.class, "driveBackRight");
-        driveBackRight.setDirection(DcMotor.Direction.FORWARD);
-
-        // Init image recognition
-        // Connect to the camera we are to use.  This name must match what is set up in Robot Configuration
-        webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
+        commands.add(new GoTo(robot, OpenGLMatrix.identityMatrix().translated(5, 0, 0)));
 
         /*
          * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
@@ -185,7 +137,7 @@ public class Auto1 extends LinearOpMode {
         parameters.vuforiaLicenseKey = VUFORIA_KEY;
 
         // We also indicate which camera we wish to use.
-        parameters.cameraName = webcamName;
+        parameters.cameraName = robot.getWebcam1Name();
 
         // Turn off Extended tracking.  Set this true if you want Vuforia to track beyond the target.
         parameters.useExtendedTracking = false;
@@ -289,7 +241,7 @@ public class Auto1 extends LinearOpMode {
                     // the last time that call was made, or if the trackable is not currently visible.
                     OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
                     if (robotLocationTransform != null) {
-                        lastLocation = robotLocationTransform;
+                        robot.setLocation(robotLocationTransform);
                     }
                     break;
                 }
@@ -298,12 +250,12 @@ public class Auto1 extends LinearOpMode {
             // Provide feedback as to where the robot is located (if we know).
             if (targetVisible) {
                 // express position (translation) of robot in inches.
-                VectorF translation = lastLocation.getTranslation();
+                VectorF translation = robot.getLocation().getTranslation();
                 telemetry.addData("Pos (inches)", "{X, Y, Z} = %.1f, %.1f, %.1f",
                         translation.get(0) / mmPerInch, translation.get(1) / mmPerInch, translation.get(2) / mmPerInch);
 
                 // express the rotation of the robot in degrees.
-                Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
+                Orientation rotation = Orientation.getOrientation(robot.getLocation(), EXTRINSIC, XYZ, DEGREES);
                 telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
             }
             else {

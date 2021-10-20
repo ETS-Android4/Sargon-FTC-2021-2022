@@ -52,95 +52,22 @@ import com.qualcomm.robotcore.util.Range;
 
 @TeleOp(name="TeleOp2", group="Linear OpMode")
 public class TeleOp2 extends LinearOpMode {
-    private ElapsedTime runtime = new ElapsedTime();
+    Robot robot;
 
-    private DcMotor driveFrontLeft = null;
-    private DcMotor driveFrontRight = null;
-    private DcMotor driveBackLeft = null;
-    private DcMotor driveBackRight = null;
-
-    private void mecanumDrive(double direction, double power)
-    {
-        double x = power * Math.cos(direction);
-        double y = power * Math.sin(direction);
-
-        double drive = -y;
-        double strafe = -x;
-
-        double frontLeftPower = drive + strafe;
-        double frontRightPower = -drive + strafe;
-        double backLeftPower = drive - strafe;
-        double backRightPower = -drive - strafe;
-
-        driveFrontLeft.setPower(frontLeftPower);
-        driveFrontRight.setPower(frontRightPower);
-        driveBackLeft.setPower(backLeftPower);
-        driveBackRight.setPower(backRightPower);
-    }
-
-    // Direction: Radians between -PI and PI
-    // Power: Double between 0 and 1
-    private void mecanumRotate(double direction, double power)
-    {
-        driveFrontLeft.setPower((direction / Math.PI) * power);
-        driveFrontRight.setPower((direction / Math.PI) * power);
-        driveBackLeft.setPower((direction / Math.PI) * power);
-        driveBackRight.setPower((direction / Math.PI) * power);
-    }
-
-    private void runMecanum(double joyX, double joyY, double triggerL, double triggerR) {
-        double r = Math.hypot(joyX, joyY);
-        double robotAngle = Math.atan2(joyY, joyX);
-        double yaw = triggerR - triggerL;
-        //double frontLeftPower = (r * Math.cos(robotAngle)) + yaw;
-        //double frontRightPower = (r * Math.sin(robotAngle)) - yaw;
-        //double backLeftPower = (r * Math.sin(robotAngle)) + yaw;
-        //double backRightPower = (r * Math.cos(robotAngle)) - yaw;
-
-        double drive = joyY;
-        double strafe = -joyX;
-        double twist = triggerL - triggerR;
-
-        double frontLeftPower = drive + strafe + twist;
-        double frontRightPower = -drive + strafe + twist;
-        double backLeftPower = drive - strafe + twist;
-        double backRightPower = -drive - strafe + twist;
-
-        driveFrontLeft.setPower(frontLeftPower);
-        driveFrontRight.setPower(frontRightPower);
-        driveBackLeft.setPower(backLeftPower);
-        driveBackRight.setPower(backRightPower);
-
-        telemetry.addData("Angle", "r %f, ra %f, Yaw %f", r, robotAngle, yaw);
-        telemetry.addData("Motors", "0 %f, 1 %f, 2 %f, 3 %f",
-                frontLeftPower, frontRightPower, backLeftPower, backRightPower);
-        telemetry.addData("Controller", "X %f, Y %f, L %f, R %f",
-                joyX, joyY,
-                triggerL, triggerR);
-        telemetry.addData("Vals", "drive %f, strafe %f, twist %f",
-                drive, strafe, twist);
-    }
     @Override
     public void runOpMode() {
+        robot = new Robot(telemetry, hardwareMap,
+                new String[]{"driveFrontLeft", "driveFrontRight", "driveBackLeft", "driveBackRight"},
+                "Webcam 1");
+
         telemetry.addData("Status", "Initialized");
         telemetry.update();
         waitForStart();
-        runtime.reset();
 
-        // Initialize the hardware variables. Note that the strings used here as parameters
-        // to 'get' must correspond to the names assigned during the robot configuration
-        // step (using the FTC Robot Controller app on the phone).
-        driveFrontLeft = hardwareMap.get(DcMotor.class, "driveFrontLeft");
-        driveFrontLeft.setDirection(DcMotor.Direction.REVERSE);
-        driveFrontRight = hardwareMap.get(DcMotor.class, "driveFrontRight");
-        driveFrontRight.setDirection(DcMotor.Direction.REVERSE);
-        driveBackLeft = hardwareMap.get(DcMotor.class, "driveBackLeft");
-        driveBackLeft.setDirection(DcMotor.Direction.FORWARD);
-        driveBackRight = hardwareMap.get(DcMotor.class, "driveBackRight");
-        driveBackRight.setDirection(DcMotor.Direction.FORWARD);
+        robot.start();
 
         while (opModeIsActive()) {
-            runMecanum(gamepad1.left_stick_x, gamepad1.left_stick_y,
+            robot.getDrive().gamepadMove(gamepad1.left_stick_x, gamepad1.left_stick_y,
                     gamepad1.left_trigger, gamepad1.right_trigger);
 
             // For autonomous mode
