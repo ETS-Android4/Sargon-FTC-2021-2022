@@ -51,6 +51,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
+import org.firstinspires.ftc.teamcode.commands.Command;
+import org.firstinspires.ftc.teamcode.commands.EncoderDrive;
 import org.firstinspires.ftc.teamcode.commands.GoTo;
 
 import java.util.ArrayList;
@@ -113,7 +115,7 @@ public class Auto1 extends LinearOpMode {
 
     Robot robot;
 
-    List commands = new ArrayList();
+    List<Command> commands = new ArrayList();
 
 
 
@@ -122,7 +124,8 @@ public class Auto1 extends LinearOpMode {
                 new String[]{"driveFrontLeft", "driveFrontRight", "driveBackLeft", "driveBackRight"},
                 "Webcam 1");
 
-        commands.add(new GoTo(robot, OpenGLMatrix.identityMatrix().translated(5, 0, 0)));
+        //commands.add((Command)new GoTo(robot, OpenGLMatrix.identityMatrix().translated(5, 0, 0)));
+        commands.add((Command)new EncoderDrive(robot, 100000, 10));
 
         /*
          * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
@@ -261,6 +264,13 @@ public class Auto1 extends LinearOpMode {
             else {
                 telemetry.addData("Visible Target", "none");
             }
+
+            for (Command command : commands)
+            {
+                command.run();
+                commands.remove(command);
+            }
+
             telemetry.update();
         }
 

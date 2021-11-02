@@ -2,24 +2,25 @@ package org.firstinspires.ftc.teamcode.commands;
 
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.teamcode.Robot;
-import org.firstinspires.ftc.teamcode.commands.Command;
-import org.firstinspires.ftc.teamcode.Auto1;
 
-public class GoTo implements Command {
+public class EncoderDrive implements Command {
     Robot robot;
 
-    OpenGLMatrix location;
+    int targetPosition;
+    double maxTime;
 
     boolean success = false;
 
-    public GoTo(Robot robot, OpenGLMatrix location)
+    public EncoderDrive(Robot robot, int targetPosition, double maxTime)
     {
         this.robot = robot;
-        this.location = location;
+        this.targetPosition = targetPosition;
+        this.maxTime = maxTime;
     }
 
     public Boolean run()
     {
+        robot.getDrive().encoderDrive(targetPosition);
         return success = false;
     }
 

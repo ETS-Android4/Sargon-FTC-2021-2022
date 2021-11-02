@@ -28,27 +28,27 @@ public class Robot {
         location = OpenGLMatrix.identityMatrix();
     }
 
-    void start()
+    public void start()
     {
         runtime.reset();
     }
 
-    MecanumDrive getDrive()
+    public MecanumDrive getDrive()
     {
         return drive;
     }
 
-    WebcamName getWebcam1Name()
+    public WebcamName getWebcam1Name()
     {
         return webcam1;
     }
 
-    OpenGLMatrix getLocation()
+    public OpenGLMatrix getLocation()
     {
         return location;
     }
 
-    void setLocation(OpenGLMatrix to)
+    public void setLocation(OpenGLMatrix to)
     {
         location = to;
     }

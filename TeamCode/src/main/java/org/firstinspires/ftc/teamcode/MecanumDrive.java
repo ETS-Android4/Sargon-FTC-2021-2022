@@ -13,13 +13,13 @@ public class MecanumDrive {
     MecanumDrive(HardwareMap hardwareMap, String[] motorNames)
     {
         driveFrontLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[0]);
-        driveFrontLeft.setDirection(DcMotor.Direction.REVERSE);
+        driveFrontLeft.setDirection(DcMotor.Direction.FORWARD);
         driveFrontRight = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[1]);
         driveFrontRight.setDirection(DcMotor.Direction.REVERSE);
         driveBackLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[2]);
         driveBackLeft.setDirection(DcMotor.Direction.FORWARD);
         driveBackRight = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[3]);
-        driveBackRight.setDirection(DcMotor.Direction.FORWARD);
+        driveBackRight.setDirection(DcMotor.Direction.REVERSE);
     }
 
     public void move(double direction, double power)
@@ -73,5 +73,23 @@ public class MecanumDrive {
         driveFrontRight.setPower(frontRightPower);
         driveBackLeft.setPower(backLeftPower);
         driveBackRight.setPower(backRightPower);
+    }
+
+    public void encoderDrive(int distance)
+    {
+        driveFrontLeft.setTargetPosition(distance);
+        driveFrontRight.setTargetPosition(distance);
+        driveBackLeft.setTargetPosition(distance);
+        driveBackRight.setTargetPosition(distance);
+
+        driveFrontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        driveFrontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        driveBackLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        driveBackRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        driveFrontLeft.setPower(1);
+        driveFrontRight.setPower(1);
+        driveBackLeft.setPower(1);
+        driveBackRight.setPower(1);
     }
 }
