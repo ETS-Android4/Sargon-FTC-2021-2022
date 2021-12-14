@@ -90,3 +90,4 @@ lint/tmp/
 
 .DS_Store
 *.hprof
+.DS_Store

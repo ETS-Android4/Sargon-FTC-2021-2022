@@ -32,7 +32,10 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.ServoControllerEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
@@ -52,13 +55,31 @@ import com.qualcomm.robotcore.util.Range;
 
 @TeleOp(name="TeleOp2", group="Linear OpMode")
 public class TeleOp2 extends LinearOpMode {
-    Robot robot;
+    ElapsedTime runtime = new ElapsedTime();
+
+    private DcMotorEx driveFrontLeft = null;
+    private DcMotorEx driveFrontRight = null;
+    private DcMotorEx driveBackLeft = null;
+    private DcMotorEx driveBackRight = null;
+
+    private DcMotorEx lift = null;
+    private ServoControllerEx dumper = null;
 
     @Override
     public void runOpMode() {
-        robot = new Robot(telemetry, hardwareMap,
-                new String[]{"driveFrontLeft", "driveFrontRight", "driveBackLeft", "driveBackRight"},
-                "Webcam 1");
+        driveFrontLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[0]);
+        driveFrontLeft.setDirection(DcMotor.Direction.FORWARD);
+        driveFrontRight = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[1]);
+        driveFrontRight.setDirection(DcMotor.Direction.REVERSE);
+        driveBackLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[2]);
+        driveBackLeft.setDirection(DcMotor.Direction.FORWARD);
+        driveBackRight = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[3]);
+        driveBackRight.setDirection(DcMotor.Direction.REVERSE);
+
+        lift = (DcMotorEx)hardwareMap.get(DcMotor.class, "lift");
+        lift.setDirection(DcMotor.Direction.FORWARD);
+        dumper = (ServoControllerEx)hardwareMap.get(ServoControllerEx.class, "dumper");
+
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
