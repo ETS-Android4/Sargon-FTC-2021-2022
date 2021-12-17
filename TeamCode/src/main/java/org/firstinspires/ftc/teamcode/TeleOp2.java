@@ -57,38 +57,79 @@ import com.qualcomm.robotcore.util.Range;
 public class TeleOp2 extends LinearOpMode {
     ElapsedTime runtime = new ElapsedTime();
 
-    private DcMotorEx driveFrontLeft = null;
-    private DcMotorEx driveFrontRight = null;
-    private DcMotorEx driveBackLeft = null;
-    private DcMotorEx driveBackRight = null;
+    private DcMotorEx driveLeft = null;
+    private DcMotorEx driveRight = null;
 
-    private DcMotorEx lift = null;
-    private ServoControllerEx dumper = null;
+    private DcMotorEx carouselLeft = null;
+    private DcMotorEx carouselRight = null;
+    private DcMotorEx intake = null;
+    private DcMotorEx lifter = null;
+    private Servo dumper = null;
+
+
+    public void gamepadMove(double joyX, double joyY, double triggerL, double triggerR) {
+        double r = Math.hypot(joyX, joyY);
+        double robotAngle = Math.atan2(joyY, joyX);
+        double yaw = triggerR - triggerL;
+
+        double drive = joyY;
+        double strafe = -joyX;
+        double twist = triggerL - triggerR;
+
+        double frontLeftPower = drive + strafe + twist;
+        double frontRightPower = -drive + strafe + twist;
+        double backLeftPower = drive - strafe + twist;
+        double backRightPower = -drive - strafe + twist;
+
+        driveLeft.setPower(- gamepad1.left_stick_y/2 + gamepad1.right_stick_x/2);
+        driveRight.setPower(- gamepad1.left_stick_y/2 - gamepad1.right_stick_x/2);
+
+
+        /*
+        double r = Math.hypot(joyX, joyY);
+        double robotAngle = Math.atan2(joyY, joyX);
+        double yaw = triggerR - triggerL;
+        //double frontLeftPower = (r * Math.cos(robotAngle)) + yaw;
+        //double frontRightPower = (r * Math.sin(robotAngle)) - yaw;
+        //double backLeftPower = (r * Math.sin(robotAngle)) + yaw;
+        //double backRightPower = (r * Math.cos(robotAngle)) - yaw;
+
+        double drive = joyY;
+        double strafe = -joyX;
+        double twist = triggerL - triggerR;
+
+        double frontLeftPower = drive + strafe + twist;
+        double frontRightPower = -drive + strafe + twist;
+        double backLeftPower = drive - strafe + twist;
+        double backRightPower = -drive - strafe + twist;
+
+        //driveFrontLeft.setPower(frontLeftPower);
+        //driveFrontRight.setPower(frontRightPower);
+        //driveBackLeft.setPower(backLeftPower);
+        //driveBackRight.setPower(backRightPower);*/
+    }
 
     @Override
     public void runOpMode() {
-        driveFrontLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[0]);
-        driveFrontLeft.setDirection(DcMotor.Direction.FORWARD);
-        driveFrontRight = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[1]);
-        driveFrontRight.setDirection(DcMotor.Direction.REVERSE);
-        driveBackLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[2]);
-        driveBackLeft.setDirection(DcMotor.Direction.FORWARD);
-        driveBackRight = (DcMotorEx)hardwareMap.get(DcMotor.class, motorNames[3]);
-        driveBackRight.setDirection(DcMotor.Direction.REVERSE);
+        driveLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveLeft");
+        driveLeft.setDirection(DcMotor.Direction.FORWARD);
+        driveRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveRight");
+        driveRight.setDirection(DcMotor.Direction.FORWARD);
 
-        lift = (DcMotorEx)hardwareMap.get(DcMotor.class, "lift");
-        lift.setDirection(DcMotor.Direction.FORWARD);
-        dumper = (ServoControllerEx)hardwareMap.get(ServoControllerEx.class, "dumper");
+        //carouselLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselLeft");
+        //carouselRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselRight");
+        intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
+        lifter = (DcMotorEx)hardwareMap.get(DcMotor.class, "lifter");
+
+        dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
         waitForStart();
 
-        robot.start();
-
         while (opModeIsActive()) {
-            robot.getDrive().gamepadMove(gamepad1.left_stick_x, gamepad1.left_stick_y,
+            gamepadMove(gamepad1.left_stick_x, gamepad1.left_stick_y,
                     gamepad1.left_trigger, gamepad1.right_trigger);
 
             // For autonomous mode
@@ -98,6 +139,15 @@ public class TeleOp2 extends LinearOpMode {
 
             //mecanumRotate((gamepad1.left_trigger - gamepad1.right_trigger) * Math.PI,
             //        1.0);
+
+            if (gamepad1.left_bumper)
+            {
+                intake.setPower(gamepad1.right_bumper ? 1.0 : 0.0);
+            }
+            else
+            {
+                intake.setPower(gamepad1.right_bumper ? -1.0 : 0.0);
+            }
 
             telemetry.update();
         }
