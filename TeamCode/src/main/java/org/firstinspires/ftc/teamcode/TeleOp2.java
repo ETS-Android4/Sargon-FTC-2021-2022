@@ -53,6 +53,12 @@ import com.qualcomm.robotcore.util.Range;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
+    // Drive left stick
+    // Toggle intake with left for speed, right for direction bumpers
+    // Carousel triggers
+    // Dumper d-pad y
+    // Lifter right stick y
+
 @TeleOp(name="TeleOp2", group="Linear OpMode")
 public class TeleOp2 extends LinearOpMode {
     ElapsedTime runtime = new ElapsedTime();
@@ -65,6 +71,8 @@ public class TeleOp2 extends LinearOpMode {
     private DcMotorEx intake = null;
     private DcMotorEx lifter = null;
     private Servo dumper = null;
+
+    private boolean leftBumperPrev = false;
 
 
     public void gamepadMove(double joyX, double joyY, double triggerL, double triggerR) {
@@ -81,8 +89,8 @@ public class TeleOp2 extends LinearOpMode {
         double backLeftPower = drive - strafe + twist;
         double backRightPower = -drive - strafe + twist;
 
-        driveLeft.setPower(- gamepad1.left_stick_y/2 + gamepad1.right_stick_x/2);
-        driveRight.setPower(- gamepad1.left_stick_y/2 - gamepad1.right_stick_x/2);
+        driveLeft.setPower(- gamepad1.left_stick_y/2 + gamepad1.left_stick_x/2);
+        driveRight.setPower(- gamepad1.left_stick_y/2 - gamepad1.left_stick_x/2);
 
 
         /*
@@ -114,10 +122,12 @@ public class TeleOp2 extends LinearOpMode {
         driveLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveLeft");
         driveLeft.setDirection(DcMotor.Direction.FORWARD);
         driveRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveRight");
-        driveRight.setDirection(DcMotor.Direction.FORWARD);
+        driveRight.setDirection(DcMotor.Direction.REVERSE);
 
-        //carouselLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselLeft");
-        //carouselRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselRight");
+        carouselLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselLeft");
+        carouselLeft.setDirection(DcMotor.Direction.FORWARD);
+        carouselRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselRight");
+        carouselRight.setDirection(DcMotor.Direction.REVERSE);
         intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
         lifter = (DcMotorEx)hardwareMap.get(DcMotor.class, "lifter");
 
@@ -140,14 +150,38 @@ public class TeleOp2 extends LinearOpMode {
             //mecanumRotate((gamepad1.left_trigger - gamepad1.right_trigger) * Math.PI,
             //        1.0);
 
-            if (gamepad1.left_bumper)
+
+
+            boolean leftBumperCurr = gamepad1.left_bumper;
+            if (leftBumperCurr && !leftBumperPrev && intake.getPower() == 0.0)
             {
-                intake.setPower(gamepad1.right_bumper ? 1.0 : 0.0);
+                if (gamepad1.right_bumper)
+                {
+                    intake.setPower(-1.0);
+                }
+                else
+                {
+                    intake.setPower(1.0);
+                }
             }
-            else
+            else if (leftBumperCurr && !leftBumperPrev && Math.abs(intake.getPower()) != 0.0) {
+                intake.setPower(0.0);
+            }
+            leftBumperPrev = leftBumperCurr;
+
+            if (gamepad1.dpad_down)
             {
-                intake.setPower(gamepad1.right_bumper ? -1.0 : 0.0);
+                dumper.setPosition(1.0);
             }
+            else if (gamepad1.dpad_up)
+            {
+                dumper.setPosition(0.0);
+            }
+
+            carouselLeft.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
+            carouselRight.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
+
+            lifter.setPower(-gamepad1.right_stick_y);
 
             telemetry.update();
         }
