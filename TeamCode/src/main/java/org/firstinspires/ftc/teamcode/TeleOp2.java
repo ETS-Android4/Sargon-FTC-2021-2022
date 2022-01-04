@@ -59,23 +59,54 @@ import com.qualcomm.robotcore.util.Range;
     // Dumper d-pad y
     // Lifter right stick y
 
+
+    /* Configuration
+
+    Control Hub
+    0: driveBackLeft
+    1: driveFrontLeft
+    2: carouselLeft
+    3: intake
+
+    Expansion Hub
+    0: driveBackRight
+    1: driveFrontRight
+    2: carouselRight
+    3: arm
+
+    */
+
+    // DriveSimple2
 @TeleOp(name="TeleOp2", group="Linear OpMode")
 public class TeleOp2 extends LinearOpMode {
     ElapsedTime runtime = new ElapsedTime();
 
-    private DcMotorEx driveLeft = null;
-    private DcMotorEx driveRight = null;
+    private DcMotorEx driveFrontLeft = null;
+    private DcMotorEx driveBackLeft = null;
+    private DcMotorEx driveFrontRight = null;
+    private DcMotorEx driveBackRight = null;
 
+    // Used to spin duck discs
     private DcMotorEx carouselLeft = null;
     private DcMotorEx carouselRight = null;
+
     private DcMotorEx intake = null;
-    private DcMotorEx lifter = null;
+
+    int positionTargetAtZero = 0;
+    int cyclesAtZero = 0;
+    boolean yPrev = false;
+    boolean isBrakingActive = false;
+    private DcMotorEx arm = null;
+
     private Servo dumper = null;
 
     private boolean leftBumperPrev = false;
 
 
     public void gamepadMove(double joyX, double joyY, double triggerL, double triggerR) {
+
+        // Tank Drive
+        /*
         double r = Math.hypot(joyX, joyY);
         double robotAngle = Math.atan2(joyY, joyX);
         double yaw = triggerR - triggerL;
@@ -91,9 +122,9 @@ public class TeleOp2 extends LinearOpMode {
 
         driveLeft.setPower(- gamepad1.left_stick_y/2 + gamepad1.left_stick_x/2);
         driveRight.setPower(- gamepad1.left_stick_y/2 - gamepad1.left_stick_x/2);
+        */
 
-
-        /*
+        // Mecanum Drive
         double r = Math.hypot(joyX, joyY);
         double robotAngle = Math.atan2(joyY, joyX);
         double yaw = triggerR - triggerL;
@@ -111,25 +142,32 @@ public class TeleOp2 extends LinearOpMode {
         double backLeftPower = drive - strafe + twist;
         double backRightPower = -drive - strafe + twist;
 
-        //driveFrontLeft.setPower(frontLeftPower);
-        //driveFrontRight.setPower(frontRightPower);
-        //driveBackLeft.setPower(backLeftPower);
-        //driveBackRight.setPower(backRightPower);*/
+        driveFrontLeft.setPower(frontLeftPower);
+        driveFrontRight.setPower(frontRightPower);
+        driveBackLeft.setPower(backLeftPower);
+        driveBackRight.setPower(backRightPower);
     }
 
     @Override
     public void runOpMode() {
-        driveLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveLeft");
-        driveLeft.setDirection(DcMotor.Direction.FORWARD);
-        driveRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveRight");
-        driveRight.setDirection(DcMotor.Direction.REVERSE);
+        driveFrontLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveFrontLeft");
+        driveFrontLeft.setDirection(DcMotor.Direction.FORWARD);
+        driveBackLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveBackLeft");
+        driveBackLeft.setDirection(DcMotor.Direction.FORWARD);
+        driveFrontRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveFrontRight");
+        driveFrontRight.setDirection(DcMotor.Direction.REVERSE);
+        driveBackRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveBackRight");
+        driveBackRight.setDirection(DcMotor.Direction.REVERSE);
 
         carouselLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselLeft");
         carouselLeft.setDirection(DcMotor.Direction.FORWARD);
         carouselRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselRight");
         carouselRight.setDirection(DcMotor.Direction.REVERSE);
+
         intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
-        lifter = (DcMotorEx)hardwareMap.get(DcMotor.class, "lifter");
+        arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
+        //arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
@@ -142,32 +180,33 @@ public class TeleOp2 extends LinearOpMode {
             gamepadMove(gamepad1.left_stick_x, gamepad1.left_stick_y,
                     gamepad1.left_trigger, gamepad1.right_trigger);
 
-            // For autonomous mode
-            //double heading = Math.atan2(-gamepad1.left_stick_y, gamepad1.left_stick_x);
-            //double power = Math.hypot(gamepad1.left_stick_x, gamepad1.left_stick_y);
-            //mecanumDrive(heading, power);
-
-            //mecanumRotate((gamepad1.left_trigger - gamepad1.right_trigger) * Math.PI,
-            //        1.0);
+            carouselLeft.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
+            carouselRight.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
 
 
-
+            // Test if the left bumper has been pressed down
             boolean leftBumperCurr = gamepad1.left_bumper;
-            if (leftBumperCurr && !leftBumperPrev && intake.getPower() == 0.0)
+            if (leftBumperCurr && !leftBumperPrev)
             {
-                if (gamepad1.right_bumper)
-                {
-                    intake.setPower(-1.0);
-                }
-                else
+                if (intake.getPower() == 0.0)
                 {
                     intake.setPower(1.0);
                 }
-            }
-            else if (leftBumperCurr && !leftBumperPrev && Math.abs(intake.getPower()) != 0.0) {
-                intake.setPower(0.0);
+                else // Already on, set to off
+                {
+                    intake.setPower(0.0);
+                }
             }
             leftBumperPrev = leftBumperCurr;
+
+            if (intake.getPower() == -1.0 && !gamepad1.right_bumper)
+            {
+                intake.setPower(0.0);
+            }
+            else if (gamepad1.right_bumper)
+            {
+                intake.setPower(-1.0);
+            }
 
             if (gamepad1.dpad_down)
             {
@@ -178,10 +217,62 @@ public class TeleOp2 extends LinearOpMode {
                 dumper.setPosition(0.0);
             }
 
-            carouselLeft.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
-            carouselRight.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
 
-            lifter.setPower(-gamepad1.right_stick_y);
+
+            if (-gamepad1.right_stick_y == 0)
+            {
+                cyclesAtZero++;
+
+                if (arm.getMode() == DcMotor.RunMode.RUN_USING_ENCODER) {
+                    arm.setPower(0.0);
+                }
+            }
+            else
+            {
+                if (arm.getMode() == DcMotor.RunMode.RUN_TO_POSITION)
+                {
+                    arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                }
+
+                positionTargetAtZero = arm.getCurrentPosition();
+                arm.setPower(-gamepad1.right_stick_y);
+                cyclesAtZero = 0;
+            }
+
+            boolean yCurr = gamepad1.y;
+            if (yCurr && !yPrev)
+            {
+                if (isBrakingActive)
+                {
+                    isBrakingActive = false;
+
+                    if (arm.getMode() == DcMotor.RunMode.RUN_TO_POSITION)
+                    {
+                        arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                        arm.setPower(-gamepad1.right_stick_y);
+                    }
+                }
+                else
+                {
+                    isBrakingActive = true;
+                }
+            }
+            yPrev = gamepad1.y;
+
+            if (isBrakingActive)
+            {
+                if (cyclesAtZero >= 10 && arm.getMode() == DcMotor.RunMode.RUN_USING_ENCODER) {
+                    positionTargetAtZero = arm.getCurrentPosition();
+                    arm.setTargetPosition(positionTargetAtZero);
+                    arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    arm.setPower(0.1);
+                }
+                else if (cyclesAtZero >= 10) {
+                    arm.setTargetPosition(positionTargetAtZero);
+                }
+            }
+            telemetry.addLine("IsBrakingActive " + isBrakingActive);
+            telemetry.addLine("cyclesAtZero " + cyclesAtZero);
 
             telemetry.update();
         }
