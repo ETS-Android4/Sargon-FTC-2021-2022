@@ -51,9 +51,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
-import org.firstinspires.ftc.teamcode.commands.Command;
-import org.firstinspires.ftc.teamcode.commands.EncoderDrive;
-import org.firstinspires.ftc.teamcode.commands.GoTo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -113,19 +110,19 @@ public class Auto1 extends LinearOpMode {
 
     private boolean targetVisible       = false;
 
-    Robot robot;
+    //Robot robot;
 
-    List<Command> commands = new ArrayList();
+    //List<Command> commands = new ArrayList();
 
 
 
     @Override public void runOpMode() {
-        robot = new Robot(telemetry, hardwareMap,
-                new String[]{"driveFrontLeft", "driveFrontRight", "driveBackLeft", "driveBackRight"},
-                "Webcam 1");
+        //robot = new Robot(telemetry, hardwareMap,
+        //        new String[]{"driveFrontLeft", "driveFrontRight", "driveBackLeft", "driveBackRight"},
+        //        "Webcam 1");
 
         //commands.add((Command)new GoTo(robot, OpenGLMatrix.identityMatrix().translated(5, 0, 0)));
-        commands.add((Command)new EncoderDrive(robot, 100000, 10));
+        //commands.add((Command)new EncoderDrive(robot, 100000, 10));
 
         /*
          * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
@@ -140,7 +137,7 @@ public class Auto1 extends LinearOpMode {
         parameters.vuforiaLicenseKey = VUFORIA_KEY;
 
         // We also indicate which camera we wish to use.
-        parameters.cameraName = robot.getWebcam1Name();
+        //parameters.cameraName = robot.getWebcam1Name();
 
         // Turn off Extended tracking.  Set this true if you want Vuforia to track beyond the target.
         parameters.useExtendedTracking = false;
@@ -244,7 +241,7 @@ public class Auto1 extends LinearOpMode {
                     // the last time that call was made, or if the trackable is not currently visible.
                     OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
                     if (robotLocationTransform != null) {
-                        robot.setLocation(robotLocationTransform);
+                        //robot.setLocation(robotLocationTransform);
                     }
                     break;
                 }
@@ -253,23 +250,23 @@ public class Auto1 extends LinearOpMode {
             // Provide feedback as to where the robot is located (if we know).
             if (targetVisible) {
                 // express position (translation) of robot in inches.
-                VectorF translation = robot.getLocation().getTranslation();
-                telemetry.addData("Pos (inches)", "{X, Y, Z} = %.1f, %.1f, %.1f",
-                        translation.get(0) / mmPerInch, translation.get(1) / mmPerInch, translation.get(2) / mmPerInch);
+                //VectorF translation = robot.getLocation().getTranslation();
+                //telemetry.addData("Pos (inches)", "{X, Y, Z} = %.1f, %.1f, %.1f",
+                //        translation.get(0) / mmPerInch, translation.get(1) / mmPerInch, translation.get(2) / mmPerInch);
 
                 // express the rotation of the robot in degrees.
-                Orientation rotation = Orientation.getOrientation(robot.getLocation(), EXTRINSIC, XYZ, DEGREES);
-                telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
+                //Orientation rotation = Orientation.getOrientation(robot.getLocation(), EXTRINSIC, XYZ, DEGREES);
+                //telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
             }
             else {
                 telemetry.addData("Visible Target", "none");
             }
 
-            for (Command command : commands)
+            /*for (Command command : commands)
             {
                 command.run();
                 commands.remove(command);
-            }
+            }*/
 
             telemetry.update();
         }
