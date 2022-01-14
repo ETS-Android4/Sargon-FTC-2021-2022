@@ -215,13 +215,16 @@ public class TeleOp2 extends LinearOpMode {
 
             if (gamepad1.dpad_down)
             {
-                dumper.setPosition(1.0);
+                dumper.setPosition(0.0);
+            }
+            else if (gamepad1.dpad_right)
+            {
+                dumper.setPosition(0.148);
             }
             else if (gamepad1.dpad_up)
             {
-                dumper.setPosition(0.0);
+                dumper.setPosition(0.296);
             }
-
 
 
             if (-gamepad1.right_stick_y == 0)
