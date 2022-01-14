@@ -67,6 +67,7 @@ import com.qualcomm.robotcore.util.Range;
     1: driveFrontLeft
     2: carouselLeft
     3: intake
+    Servo 0: dumper
 
     Expansion Hub
     0: driveBackRight
@@ -86,6 +87,7 @@ public class TeleOp2 extends LinearOpMode {
     private DcMotorEx driveBackLeft = null;
     private DcMotorEx driveFrontRight = null;
     private DcMotorEx driveBackRight = null;
+    public double TRIGGER_POWER_SCALAR = 0.5;
 
     // Used to spin duck discs
     private DcMotorEx carouselLeft = null;
@@ -98,6 +100,7 @@ public class TeleOp2 extends LinearOpMode {
     boolean yPrev = false;
     boolean isBrakingActive = false;
     private DcMotorEx arm = null;
+    public double ARM_POWER = 0.25;
 
     private Servo dumper = null;
 
@@ -156,9 +159,9 @@ public class TeleOp2 extends LinearOpMode {
         driveBackLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveBackLeft");
         driveBackLeft.setDirection(DcMotor.Direction.FORWARD);
         driveFrontRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveFrontRight");
-        driveFrontRight.setDirection(DcMotor.Direction.REVERSE);
+        driveFrontRight.setDirection(DcMotor.Direction.FORWARD);
         driveBackRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveBackRight");
-        driveBackRight.setDirection(DcMotor.Direction.REVERSE);
+        driveBackRight.setDirection(DcMotor.Direction.FORWARD);
 
         carouselLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselLeft");
         carouselLeft.setDirection(DcMotor.Direction.FORWARD);
@@ -166,6 +169,7 @@ public class TeleOp2 extends LinearOpMode {
         carouselRight.setDirection(DcMotor.Direction.REVERSE);
 
         intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
+        intake.setDirection(DcMotor.Direction.REVERSE);
         arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
         //arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -178,11 +182,12 @@ public class TeleOp2 extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-            gamepadMove(gamepad1.left_stick_x, gamepad1.left_stick_y,
-                    gamepad1.left_trigger, gamepad1.right_trigger);
+            gamepadMove(-gamepad1.left_stick_x, -gamepad1.left_stick_y,
+                    gamepad1.right_trigger * TRIGGER_POWER_SCALAR,
+                    gamepad1.left_trigger * TRIGGER_POWER_SCALAR);
 
-            carouselLeft.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
-            carouselRight.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
+            carouselLeft.setPower((gamepad1.x ? 0.25 : 0.0) - (gamepad1.a ? 0.25 : 0.0));
+            carouselRight.setPower((gamepad1.x ? 0.25 : 0.0) - (gamepad1.a ? 0.25 : 0.0));
 
 
             // Test if the left bumper has been pressed down
@@ -191,7 +196,7 @@ public class TeleOp2 extends LinearOpMode {
             {
                 if (intake.getPower() == 0.0)
                 {
-                    intake.setPower(1.0);
+                    intake.setPower(0.5);
                 }
                 else // Already on, set to off
                 {
@@ -200,13 +205,13 @@ public class TeleOp2 extends LinearOpMode {
             }
             leftBumperPrev = leftBumperCurr;
 
-            if (intake.getPower() == -1.0 && !gamepad1.right_bumper)
+            if (intake.getPower() == -0.5 && !gamepad1.right_bumper)
             {
                 intake.setPower(0.0);
             }
             else if (gamepad1.dpad_left)
             {
-                intake.setPower(-1.0);
+                intake.setPower(-0.5);
             }
 
             if (gamepad1.dpad_down)
@@ -241,7 +246,7 @@ public class TeleOp2 extends LinearOpMode {
                 }
 
                 positionTargetAtZero = arm.getCurrentPosition();
-                arm.setPower(-gamepad1.right_stick_y);
+                arm.setPower(-gamepad1.right_stick_y * ARM_POWER);
                 cyclesAtZero = 0;
             }
 
@@ -255,7 +260,7 @@ public class TeleOp2 extends LinearOpMode {
                     if (arm.getMode() == DcMotor.RunMode.RUN_TO_POSITION)
                     {
                         arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                        arm.setPower(-gamepad1.right_stick_y);
+                        arm.setPower(-gamepad1.right_stick_y * ARM_POWER);
                     }
                 }
                 else
@@ -267,13 +272,13 @@ public class TeleOp2 extends LinearOpMode {
 
             if (isBrakingActive)
             {
-                if (cyclesAtZero >= 10 && arm.getMode() == DcMotor.RunMode.RUN_USING_ENCODER) {
+                if (cyclesAtZero >= 2 && arm.getMode() == DcMotor.RunMode.RUN_USING_ENCODER) {
                     positionTargetAtZero = arm.getCurrentPosition();
                     arm.setTargetPosition(positionTargetAtZero);
                     arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                     arm.setPower(0.1);
                 }
-                else if (cyclesAtZero >= 10) {
+                else if (cyclesAtZero >= 2) {
                     arm.setTargetPosition(positionTargetAtZero);
                 }
             }
