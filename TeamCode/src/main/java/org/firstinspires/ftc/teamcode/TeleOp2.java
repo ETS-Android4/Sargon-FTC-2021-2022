@@ -74,6 +74,7 @@ import com.qualcomm.robotcore.util.Range;
     2: carouselRight
     3: arm
 
+
     */
 
     // DriveSimple2
@@ -203,19 +204,24 @@ public class TeleOp2 extends LinearOpMode {
             {
                 intake.setPower(0.0);
             }
-            else if (gamepad1.right_bumper)
+            else if (gamepad1.dpad_left)
             {
                 intake.setPower(-1.0);
             }
 
             if (gamepad1.dpad_down)
             {
-                dumper.setPosition(1.0);
+                dumper.setPosition(0.0);
+            }
+            else if (gamepad1.dpad_right)
+            {
+                dumper.setPosition(0.1);
             }
             else if (gamepad1.dpad_up)
             {
-                dumper.setPosition(0.0);
+                dumper.setPosition(0.3);
             }
+
 
 
 
