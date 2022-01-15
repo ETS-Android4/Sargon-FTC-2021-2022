@@ -220,11 +220,11 @@ public class TeleOp2 extends LinearOpMode {
             }
             else if (gamepad1.dpad_right)
             {
-                dumper.setPosition(0.1);
+                dumper.setPosition(0.08);
             }
             else if (gamepad1.dpad_up)
             {
-                dumper.setPosition(0.3);
+                dumper.setPosition(0.2);
             }
 
 
