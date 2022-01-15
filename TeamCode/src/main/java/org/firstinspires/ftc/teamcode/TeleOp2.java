@@ -88,6 +88,8 @@ public class TeleOp2 extends LinearOpMode {
     private DcMotorEx driveFrontRight = null;
     private DcMotorEx driveBackRight = null;
     public double TRIGGER_POWER_SCALAR = 0.5;
+    private boolean useReversed = false;
+    private boolean bPrev = false;
 
     // Used to spin duck discs
     private DcMotorEx carouselLeft = null;
@@ -182,9 +184,24 @@ public class TeleOp2 extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-            gamepadMove(-gamepad1.left_stick_x, -gamepad1.left_stick_y,
-                    gamepad1.right_trigger * TRIGGER_POWER_SCALAR,
-                    gamepad1.left_trigger * TRIGGER_POWER_SCALAR);
+            if (gamepad1.b != bPrev && gamepad1.b)
+            {
+	            useReversed = !useReversed;
+            }
+            bPrev = gamepad1.b;
+            
+            if (useReversed)
+            {
+                gamepadMove(gamepad1.left_stick_x, gamepad1.left_stick_y,
+                    gamepad1.left_trigger * TRIGGER_POWER_SCALAR,
+					gamepad1.right_trigger * TRIGGER_POWER_SCALAR);
+            }
+            else
+            {
+                gamepadMove(-gamepad1.left_stick_x, -gamepad1.left_stick_y,
+                        gamepad1.right_trigger * TRIGGER_POWER_SCALAR,
+                        gamepad1.left_trigger * TRIGGER_POWER_SCALAR);
+            }
 
             carouselLeft.setPower((gamepad1.x ? 0.25 : 0.0) - (gamepad1.a ? 0.25 : 0.0));
             carouselRight.setPower((gamepad1.x ? 0.25 : 0.0) - (gamepad1.a ? 0.25 : 0.0));
