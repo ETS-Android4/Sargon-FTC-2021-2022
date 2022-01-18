@@ -1,40 +1,26 @@
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.DEGREES;
-import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.XYZ;
-import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.XZY;
-import static org.firstinspires.ftc.robotcore.external.navigation.AxesReference.EXTRINSIC;
-
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
-import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
-
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Autonomous
-public class AutoBlueRight extends LinearOpMode
+public class AutoBlueDuck extends LinearOpMode
 {
     enum BarcodePosition
     {
@@ -59,15 +45,43 @@ public class AutoBlueRight extends LinearOpMode
     private VuforiaLocalizer vuforia;
     private TFObjectDetector tfod;
 
+    private DcMotorEx carouselLeft = null;
+    private DcMotorEx carouselRight = null;
+    private DcMotorEx intake = null;
+    private Servo dumper = null;
+    private DcMotorEx arm = null;
+
+
+    private void placeHeldObject()
+    {
+        //arm.setTargetPosition(-740);
+
+    }
+
     @Override
     public void runOpMode() throws InterruptedException {
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
-        Pose2d startPose = new Pose2d(0, 0, 0);
+        carouselLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselLeft");
+        carouselLeft.setDirection(DcMotor.Direction.FORWARD);
+        carouselRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselRight");
+        carouselRight.setDirection(DcMotor.Direction.REVERSE);
+
+        intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
+        intake.setDirection(DcMotor.Direction.REVERSE);
+
+        //arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
+        //arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+
+
+        Pose2d startPose = new Pose2d(-3 * 12, (-6 * 12) + 8.375, 0);
+
 
         drive.setPoseEstimate(startPose);
 
-        TrajectorySequence trajSeq = drive.trajectorySequenceBuilder(startPose)
+
+        /*TrajectorySequence trajSeq = drive.trajectorySequenceBuilder(startPose)
                 .splineTo(new Vector2d(10, 10), 0)
                 .turn(Math.toRadians(90))
                 .splineTo(new Vector2d(25, -15), 0)
@@ -79,23 +93,42 @@ public class AutoBlueRight extends LinearOpMode
                 .strafeLeft(5)
                 .waitSeconds(1)
                 .splineToLinearHeading(new Pose2d(-10, -10, Math.toRadians(45)), 0)
+                .build();*/
+
+        TrajectorySequence trajSeq = drive.trajectorySequenceBuilder(startPose)
+                //.splineTo(new Vector2d(8.5 * 12, 3.75 * 12), 1.5 * Math.PI)
+                .forward(5)
+                .splineTo(new Vector2d(-5 * 12, -3 * 12), 0)
+                //.addSpatialMarker(new Vector2d(8.5 * 12, 3.75 * 12), placeHeldObject)
+                //.addDisplacementMarker(() -> {})
+                .waitSeconds(2)
                 .build();
-
-        initObjectRecognition();
-
-
-
-
 
         telemetry.addData("%", "Sargon Robotics");
         telemetry.update();
+
         waitForStart();
+
+        carouselLeft.setPower(0.5);
+        carouselRight.setPower(0.5);
+
+        //arm.setTargetPosition(-740);
+        //arm.setDirection(DcMotorSimple.Direction.REVERSE);
+        ///arm.setPower(-0.5);
 
         telemetry.addData("%", "Barcode Position: " + findObject().toString());
         telemetry.update();
 
-        if (!isStopRequested())
-            drive.followTrajectorySequence(trajSeq);
+        //drive.followTrajectorySequenceAsync(trajSeq);
+        drive.followTrajectorySequence(trajSeq);
+
+        while (!isStopRequested())
+        {
+            //if (arm.getCurrentPosition() <= -730 && arm.getCurrentPosition() >= -750)
+            //  arm.setTargetPosition(-740);
+        }
+
+
     }
 
     private BarcodePosition findObject()

@@ -89,7 +89,7 @@ public class TeleOp2 extends LinearOpMode {
     private DcMotorEx driveBackRight = null;
     public double TRIGGER_POWER_SCALAR = 0.5;
     private boolean useReversed = false;
-    private boolean bPrev = false;
+    private boolean rightBumperPrev = false;
 
     // Used to spin duck discs
     private DcMotorEx carouselLeft = null;
@@ -100,7 +100,7 @@ public class TeleOp2 extends LinearOpMode {
     int positionTargetAtZero = 0;
     int cyclesAtZero = 0;
     boolean yPrev = false;
-    boolean isBrakingActive = false;
+    boolean isBrakingActive = true;
     private DcMotorEx arm = null;
     public double ARM_POWER = 0.25;
 
@@ -184,11 +184,11 @@ public class TeleOp2 extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-            if (gamepad1.b != bPrev && gamepad1.b)
+            if (gamepad1.right_bumper != rightBumperPrev && gamepad1.right_bumper)
             {
 	            useReversed = !useReversed;
             }
-            bPrev = gamepad1.b;
+            rightBumperPrev = gamepad1.right_bumper;
             
             if (useReversed)
             {
@@ -299,6 +299,7 @@ public class TeleOp2 extends LinearOpMode {
             }
             telemetry.addLine("IsBrakingActive " + isBrakingActive);
             telemetry.addLine("cyclesAtZero " + cyclesAtZero);
+            telemetry.addLine("armPos" + arm.getCurrentPosition());
 
             telemetry.update();
         }
