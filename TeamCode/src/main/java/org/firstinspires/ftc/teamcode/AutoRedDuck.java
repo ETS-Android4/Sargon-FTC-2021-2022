@@ -81,7 +81,6 @@ public class AutoRedDuck extends LinearOpMode
 
         TrajectorySequence trajSeq = drive.trajectorySequenceBuilder(startPose)
                 //.splineTo(new Vector2d(8.5 * 12, 3.75 * 12), 1.5 * Math.PI)
-                .forward(5)
                 .splineTo(new Vector2d(-5 * 12, 3 * 12), 1 * Math.PI)
                 //.addSpatialMarker(new Vector2d(8.5 * 12, 3.75 * 12), placeHeldObject)
                 //.addDisplacementMarker(() -> {})
@@ -120,10 +119,17 @@ public class AutoRedDuck extends LinearOpMode
         telemetry.update();
 
         //drive.followTrajectorySequenceAsync(trajSeq);
-        drive.followTrajectorySequence(trajSeq);
+        //drive.followTrajectorySequence(trajSeq);
+        drive.followTrajectorySequenceAsync(trajSeq);
+
+        Runnable runnable = () -> { drive.update(); }; // or an anonymous class, or lambda...
+
+        Thread thread = new Thread(runnable);
+        thread.start();
 
         while (!isStopRequested())
         {
+            //drive.update();
             //if (arm.getCurrentPosition() <= -730 && arm.getCurrentPosition() >= -750)
               //  arm.setTargetPosition(-740);
         }

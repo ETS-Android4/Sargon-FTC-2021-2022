@@ -30,14 +30,10 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.ServoControllerEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
 
 
 /**
@@ -63,24 +59,28 @@ import com.qualcomm.robotcore.util.Range;
     /* Configuration
 
     Control Hub
-    0: driveBackLeft
-    1: driveFrontLeft
-    2: carouselLeft
-    3: intake
-    Servo 0: dumper
+        0: driveBackLeft
+        1: driveFrontLeft
+        2: carouselLeft
+        3: intake
 
     Expansion Hub
-    0: driveBackRight
-    1: driveFrontRight
-    2: carouselRight
-    3: arm
+        0: driveBackRight
+        1: driveFrontRight
+        2: carouselRight
+        3: arm
 
+    I2C
+        Control Hub
+            0: imu
 
+    Servo
+        Control Hub
+            0: dumper
     */
 
-    // DriveSimple2
-@TeleOp(name="TeleOp2", group="Linear OpMode")
-public class TeleOp2 extends LinearOpMode {
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="Stats", group="Linear OpMode")
+public class Stats extends LinearOpMode {
     ElapsedTime runtime = new ElapsedTime();
 
     private DcMotorEx driveFrontLeft = null;
@@ -89,7 +89,7 @@ public class TeleOp2 extends LinearOpMode {
     private DcMotorEx driveBackRight = null;
     public double TRIGGER_POWER_SCALAR = 0.5;
     private boolean useReversed = false;
-    private boolean rightBumperPrev = false;
+    private boolean bPrev = false;
 
     // Used to spin duck discs
     private DcMotorEx carouselLeft = null;
@@ -97,17 +97,26 @@ public class TeleOp2 extends LinearOpMode {
 
     private DcMotorEx intake = null;
 
-    int positionTargetAtZero = 0;
-    int cyclesAtZero = 0;
-    boolean yPrev = false;
-    boolean isBrakingActive = true;
+
+    private int armTarget = 0;
     private DcMotorEx arm = null;
-    public double ARM_POWER = 0.25;
 
     private Servo dumper = null;
 
     private boolean leftBumperPrev = false;
 
+
+
+
+
+    public static boolean within(double val, double target, double tolerance)
+    {
+        return Math.abs(val - target) <= tolerance;
+    }
+    public static boolean within(long val, long target, long tolerance)
+    {
+        return Math.abs(val - target) <= tolerance;
+    }
 
     public void gamepadMove(double joyX, double joyY, double triggerL, double triggerR) {
 
@@ -156,6 +165,7 @@ public class TeleOp2 extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+        // Set mo
         driveFrontLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveFrontLeft");
         driveFrontLeft.setDirection(DcMotor.Direction.FORWARD);
         driveBackLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "driveBackLeft");
@@ -184,122 +194,8 @@ public class TeleOp2 extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-            if (gamepad1.right_bumper != rightBumperPrev && gamepad1.right_bumper)
-            {
-	            useReversed = !useReversed;
-            }
-            rightBumperPrev = gamepad1.right_bumper;
-            
-            if (useReversed)
-            {
-                gamepadMove(gamepad1.left_stick_x, gamepad1.left_stick_y,
-                    gamepad1.left_trigger * TRIGGER_POWER_SCALAR,
-					gamepad1.right_trigger * TRIGGER_POWER_SCALAR);
-            }
-            else
-            {
-                gamepadMove(-gamepad1.left_stick_x, -gamepad1.left_stick_y,
-                        gamepad1.right_trigger * TRIGGER_POWER_SCALAR,
-                        gamepad1.left_trigger * TRIGGER_POWER_SCALAR);
-            }
-
-            carouselLeft.setPower((gamepad1.x ? 0.25 : 0.0) - (gamepad1.a ? 0.25 : 0.0));
-            carouselRight.setPower((gamepad1.x ? 0.25 : 0.0) - (gamepad1.a ? 0.25 : 0.0));
-
-
-            // Test if the left bumper has been pressed down
-            boolean leftBumperCurr = gamepad1.left_bumper;
-            if (leftBumperCurr && !leftBumperPrev)
-            {
-                if (intake.getPower() == 0.0)
-                {
-                    intake.setPower(0.5);
-                }
-                else // Already on, set to off
-                {
-                    intake.setPower(0.0);
-                }
-            }
-            leftBumperPrev = leftBumperCurr;
-
-            if (intake.getPower() == -0.5 && !gamepad1.right_bumper)
-            {
-                intake.setPower(0.0);
-            }
-            else if (gamepad1.dpad_left)
-            {
-                intake.setPower(-0.5);
-            }
-
-            if (gamepad1.dpad_down)
-            {
-                dumper.setPosition(0.0);
-            }
-            else if (gamepad1.dpad_right)
-            {
-
-                dumper.setPosition(0.08);
-            }
-            else if (gamepad1.dpad_up)
-            {
-                dumper.setPosition(0.2);
-            }
-            
-            if (-gamepad1.right_stick_y == 0)
-            {
-                cyclesAtZero++;
-
-                if (arm.getMode() == DcMotor.RunMode.RUN_USING_ENCODER) {
-                    arm.setPower(0.0);
-                }
-            }
-            else
-            {
-                if (arm.getMode() == DcMotor.RunMode.RUN_TO_POSITION)
-                {
-                    arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                }
-
-                positionTargetAtZero = arm.getCurrentPosition();
-                arm.setPower(-gamepad1.right_stick_y * ARM_POWER);
-                cyclesAtZero = 0;
-            }
-
-            boolean yCurr = gamepad1.y;
-            if (yCurr && !yPrev)
-            {
-                if (isBrakingActive)
-                {
-                    isBrakingActive = false;
-
-                    if (arm.getMode() == DcMotor.RunMode.RUN_TO_POSITION)
-                    {
-                        arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                        arm.setPower(-gamepad1.right_stick_y * ARM_POWER);
-                    }
-                }
-                else
-                {
-                    isBrakingActive = true;
-                }
-            }
-            yPrev = gamepad1.y;
-
-            if (isBrakingActive)
-            {
-                if (cyclesAtZero >= 2 && arm.getMode() == DcMotor.RunMode.RUN_USING_ENCODER) {
-                    positionTargetAtZero = arm.getCurrentPosition();
-                    arm.setTargetPosition(positionTargetAtZero);
-                    arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    arm.setPower(0.1);
-                }
-                else if (cyclesAtZero >= 2) {
-                    arm.setTargetPosition(positionTargetAtZero);
-                }
-            }
-            telemetry.addLine("IsBrakingActive " + isBrakingActive);
-            telemetry.addLine("cyclesAtZero " + cyclesAtZero);
             telemetry.addLine("armPos" + arm.getCurrentPosition());
+            telemetry.addLine("armTarget " + armTarget);
 
             telemetry.update();
         }
