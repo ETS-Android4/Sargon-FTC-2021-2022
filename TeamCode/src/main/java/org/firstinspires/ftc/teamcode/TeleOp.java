@@ -55,6 +55,22 @@ import com.qualcomm.robotcore.util.ElapsedTime;
     // Dumper d-pad y
     // Lifter right stick y
 
+    // Gamepad 1 (Primary)
+    // left stick: drive
+    // shoulders: rotate
+    // d-pad: arm position
+    // y: release block
+    // b: reverse drive controls
+    // x: spin carousel
+    // left bumper:
+    // right bumper: eject stuck block from intake
+
+    // Gamepad 2 (Emergency)
+    // right stick y: arm target
+    // a: Reset arm zero
+    // d-pad: Set servo position
+    // left stick y: Move servo
+
 
     /* Configuration
 
@@ -101,7 +117,12 @@ public class TeleOp extends LinearOpMode {
     private long xPressTime = 0;
     private boolean xPrev = false;
 
+    public double CAROUSEL_STOP_SPEED = 0.5;
+    public long CAROUSEL_RAMP_UP_TIME = 500000000;
+
     private DcMotorEx intake = null;
+    public double INTAKE_POWER = 0.5;
+    public double INTAKE_EJECT_SPEED = -0.5;
 
 
     private int armTarget = 0;
@@ -190,6 +211,7 @@ public class TeleOp extends LinearOpMode {
         intake.setDirection(DcMotor.Direction.REVERSE);
         arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
         //arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
@@ -208,7 +230,7 @@ public class TeleOp extends LinearOpMode {
             else if (gamepad1.dpad_right)
             {
                 armTarget = -600;
-                intake.setPower(0.0);
+                intake.setPower(0.0); // The dumping box can easily lift the intake
             }
             else if (gamepad1.dpad_up)
             {
@@ -216,7 +238,16 @@ public class TeleOp extends LinearOpMode {
                 intake.setPower(0.0);
             }
 
+            // Manual arm control
             armTarget += -gamepad2.right_stick_y * 100;
+
+            // Reset zero point on arm
+            if (gamepad2.a && arm.getMode() != DcMotor.RunMode.STOP_AND_RESET_ENCODER)
+            {
+                arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            }
+
+
             arm.setTargetPosition(armTarget);
 
             if (arm.getMode() != DcMotor.RunMode.RUN_TO_POSITION)
@@ -226,10 +257,9 @@ public class TeleOp extends LinearOpMode {
 
             if (within(arm.getCurrentPosition(), armTarget, 50))
             {
-                if (within(arm.getCurrentPosition(), 0, 50))
+                if (within(arm.getCurrentPosition(), 0, 20))
                 {
                     arm.setPower(0.1); // Power is unneeded if it is going to neutral
-                    intake.setPower(0.0);
                 }
                 else
                 {
@@ -251,6 +281,7 @@ public class TeleOp extends LinearOpMode {
                 dumper.setPosition(0.3); // Release block
             }
 
+            // Manual dumper control
             if (gamepad2.dpad_down)
             {
                 dumper.setPosition(0.0); // Allow intake
@@ -262,6 +293,10 @@ public class TeleOp extends LinearOpMode {
             else if (gamepad2.dpad_up)
             {
                 dumper.setPosition(0.3); // Release block
+            }
+            else if (gamepad2.left_stick_y != 0.0)
+            {
+                dumper.setPosition(dumper.getPosition() - (gamepad2.left_stick_y / 50));
             }
 
 
@@ -299,10 +334,10 @@ public class TeleOp extends LinearOpMode {
             if (gamepad1.x)
             {
                 long currentTime = System.nanoTime();
-                long elapsed = currentTime - xPressTime;
+                double elapsed = currentTime - xPressTime;
                 telemetry.addLine("elapsed " + elapsed);
 
-                double power = 1.0;
+                double power = Math.exp(elapsed/CAROUSEL_RAMP_UP_TIME) - 1;
                 carouselLeft.setPower(power);
                 carouselRight.setPower(power);
             }
@@ -313,12 +348,12 @@ public class TeleOp extends LinearOpMode {
                 carouselLeftZero = carouselLeft.getCurrentPosition();
                 carouselLeft.setTargetPosition(carouselLeft.getCurrentPosition());
                 carouselLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                carouselLeft.setPower(1.0);
+                carouselLeft.setPower(CAROUSEL_STOP_SPEED);
 
                 carouselRightZero = carouselRight.getCurrentPosition();
                 carouselRight.setTargetPosition(carouselRight.getCurrentPosition());
                 carouselRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                carouselRight.setPower(1.0);
+                carouselRight.setPower(CAROUSEL_STOP_SPEED);
             }
             if (!gamepad1.x)
             {
@@ -337,9 +372,9 @@ public class TeleOp extends LinearOpMode {
             boolean leftBumperCurr = gamepad1.left_bumper;
             if (leftBumperCurr && !leftBumperPrev)
             {
-                if (intake.getPower() == 0.0)
+                if (intake.getPower() != INTAKE_POWER)
                 {
-                    intake.setPower(0.5);
+                    intake.setPower(INTAKE_POWER);
                 }
                 else // Already on, set to off
                 {
@@ -348,13 +383,13 @@ public class TeleOp extends LinearOpMode {
             }
             leftBumperPrev = leftBumperCurr;
 
-            if (intake.getPower() == -0.5 && !gamepad1.right_bumper)
+            if (intake.getPower() == INTAKE_EJECT_SPEED && !gamepad1.right_bumper)
             {
                 intake.setPower(0.0);
             }
-            else if (gamepad1.dpad_left)
+            else if (gamepad1.right_bumper)
             {
-                intake.setPower(-0.5);
+                intake.setPower(INTAKE_EJECT_SPEED);
             }
 
 
