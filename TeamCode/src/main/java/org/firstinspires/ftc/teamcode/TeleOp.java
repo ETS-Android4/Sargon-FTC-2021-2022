@@ -97,6 +97,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
     // DriveSimple2
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="TeleOp", group="Linear OpMode")
+@com.acmerobotics.dashboard.config.Config
 public class TeleOp extends LinearOpMode {
     ElapsedTime runtime = new ElapsedTime();
 
@@ -104,7 +105,7 @@ public class TeleOp extends LinearOpMode {
     private DcMotorEx driveBackLeft = null;
     private DcMotorEx driveFrontRight = null;
     private DcMotorEx driveBackRight = null;
-    public double TRIGGER_POWER_SCALAR = 0.5;
+    public static double TRIGGER_POWER_SCALAR = 0.5;
     private boolean useReversed = false;
     private boolean bPrev = false;
 
@@ -117,18 +118,26 @@ public class TeleOp extends LinearOpMode {
     private long xPressTime = 0;
     private boolean xPrev = false;
 
-    public double CAROUSEL_STOP_SPEED = 0.5;
-    public long CAROUSEL_RAMP_UP_TIME = 500000000;
+    public static double CAROUSEL_STOP_SPEED = 0.25;
+    public static double CAROUSEL_RAMP_UP_TIME = 1000000000.0;
+    public static double CAROUSEL_SPEED_CAP = 0.65;
 
     private DcMotorEx intake = null;
-    public double INTAKE_POWER = 0.5;
-    public double INTAKE_EJECT_SPEED = -0.5;
+    public static double INTAKE_POWER = 0.5;
+    public static double INTAKE_EJECT_SPEED = -0.5;
 
 
     private int armTarget = 0;
     private DcMotorEx arm = null;
+    public static int ARM_INTAKE = 0;
+    public static int ARM_HIGH = -600;
+    public static int ARM_MEDIUM = -750; //todo: find the real value
+    public static int ARM_LOW = -900;
 
     private Servo dumper = null;
+    public static double DUMPER_OPEN = 0.0;
+    public static double DUMPER_HOLD = 0.15;
+    public static double DUMPER_RELEASE = 0.3;
 
     private boolean leftBumperPrev = false;
 
@@ -146,34 +155,10 @@ public class TeleOp extends LinearOpMode {
     }
 
     public void gamepadMove(double joyX, double joyY, double triggerL, double triggerR) {
-
-        // Tank Drive
-        /*
-        double r = Math.hypot(joyX, joyY);
-        double robotAngle = Math.atan2(joyY, joyX);
-        double yaw = triggerR - triggerL;
-
-        double drive = joyY;
-        double strafe = -joyX;
-        double twist = triggerL - triggerR;
-
-        double frontLeftPower = drive + strafe + twist;
-        double frontRightPower = -drive + strafe + twist;
-        double backLeftPower = drive - strafe + twist;
-        double backRightPower = -drive - strafe + twist;
-
-        driveLeft.setPower(- gamepad1.left_stick_y/2 + gamepad1.left_stick_x/2);
-        driveRight.setPower(- gamepad1.left_stick_y/2 - gamepad1.left_stick_x/2);
-        */
-
         // Mecanum Drive
         double r = Math.hypot(joyX, joyY);
         double robotAngle = Math.atan2(joyY, joyX);
         double yaw = triggerR - triggerL;
-        //double frontLeftPower = (r * Math.cos(robotAngle)) + yaw;
-        //double frontRightPower = (r * Math.sin(robotAngle)) - yaw;
-        //double backLeftPower = (r * Math.sin(robotAngle)) + yaw;
-        //double backRightPower = (r * Math.cos(robotAngle)) - yaw;
 
         double drive = joyY;
         double strafe = -joyX;
@@ -204,8 +189,10 @@ public class TeleOp extends LinearOpMode {
 
         carouselLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselLeft");
         carouselLeft.setDirection(DcMotor.Direction.FORWARD);
+        carouselLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         carouselRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselRight");
         carouselRight.setDirection(DcMotor.Direction.REVERSE);
+        carouselRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
         intake.setDirection(DcMotor.Direction.REVERSE);
@@ -268,31 +255,31 @@ public class TeleOp extends LinearOpMode {
 
                 if (armTarget == 0)
                 {
-                    dumper.setPosition(0.0); // Allow intake
+                    dumper.setPosition(DUMPER_OPEN); // Allow intake
                 }
             }
             else
             {
-                dumper.setPosition(0.15); // Hold block
+                dumper.setPosition(DUMPER_HOLD); // Hold block
             }
 
             if (gamepad1.y)
             {
-                dumper.setPosition(0.3); // Release block
+                dumper.setPosition(DUMPER_RELEASE); // Release block
             }
 
             // Manual dumper control
             if (gamepad2.dpad_down)
             {
-                dumper.setPosition(0.0); // Allow intake
+                dumper.setPosition(DUMPER_OPEN); // Allow intake
             }
             else if (gamepad2.dpad_right)
             {
-                dumper.setPosition(0.15); // Hold block
+                dumper.setPosition(DUMPER_HOLD); // Hold block
             }
             else if (gamepad2.dpad_up)
             {
-                dumper.setPosition(0.3); // Release block
+                dumper.setPosition(DUMPER_RELEASE); // Release block
             }
             else if (gamepad2.left_stick_y != 0.0)
             {
@@ -337,7 +324,7 @@ public class TeleOp extends LinearOpMode {
                 double elapsed = currentTime - xPressTime;
                 telemetry.addLine("elapsed " + elapsed);
 
-                double power = Math.exp(elapsed/CAROUSEL_RAMP_UP_TIME) - 1;
+                double power = Math.min(CAROUSEL_SPEED_CAP, Math.exp(elapsed/CAROUSEL_RAMP_UP_TIME) - 1);
                 carouselLeft.setPower(power);
                 carouselRight.setPower(power);
             }
@@ -345,21 +332,23 @@ public class TeleOp extends LinearOpMode {
             // On x let go, brake
             if (!gamepad1.x && xPrev)
             {
-                carouselLeftZero = carouselLeft.getCurrentPosition();
-                carouselLeft.setTargetPosition(carouselLeft.getCurrentPosition());
-                carouselLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                carouselLeft.setPower(CAROUSEL_STOP_SPEED);
+                //carouselLeftZero = carouselLeft.getCurrentPosition();
+                //carouselLeft.setTargetPosition(carouselLeft.getCurrentPosition());
+                carouselLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                carouselLeft.setPower(0);
 
-                carouselRightZero = carouselRight.getCurrentPosition();
-                carouselRight.setTargetPosition(carouselRight.getCurrentPosition());
-                carouselRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                carouselRight.setPower(CAROUSEL_STOP_SPEED);
+                //carouselRightZero = carouselRight.getCurrentPosition();
+                //carouselRight.setTargetPosition(carouselRight.getCurrentPosition());
+                carouselRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                carouselRight.setPower(0);
             }
-            if (!gamepad1.x)
+            /*if (!gamepad1.x)
             {
-                carouselLeft.setTargetPosition(carouselLeftZero);
-                carouselRight.setTargetPosition(carouselRightZero);
-            }
+                //carouselLeft.setTargetPosition(carouselLeftZero);
+                //carouselRight.setTargetPosition(carouselRightZero);
+                carouselLeft.setVelocity(0);
+                carouselRight.setVelocity(0);
+            }*/
 
             xPrev = gamepad1.x;
 
