@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
@@ -49,6 +50,7 @@ public class AutoBlueDuck extends LinearOpMode
     public static double startingHeading = 0;
 
     private OpenCvCamera frontWebcam = null;
+    private TeamElementDeterminationPipeline pipeline = null;
 
 
 
@@ -69,6 +71,23 @@ public class AutoBlueDuck extends LinearOpMode
 
         WebcamName frontWebcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
         OpenCvCamera frontWebcam = OpenCvCameraFactory.getInstance().createWebcam(frontWebcamName);
+        pipeline = new TeamElementDeterminationPipeline();
+        frontWebcam.setPipeline(pipeline);
+        frontWebcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener()
+        {
+            @Override
+            public void onOpened()
+            {
+                frontWebcam.startStreaming(320,240, OpenCvCameraRotation.UPRIGHT);
+            }
+
+            @Override
+            public void onError(int errorCode)
+            {
+                telemetry.addData("!", "FAILED TO INIT CAMERA");
+                telemetry.update();
+            }
+        });
 
 
         Pose2d startPose = new Pose2d(startingX, startingY, startingHeading);
@@ -76,9 +95,26 @@ public class AutoBlueDuck extends LinearOpMode
 
         waitForStart();
 
-        int armTarget = TeleOp.ARM_HIGH; //todo: use camera to find team element for height
+
+
+
+
+        int armTarget = TeleOp.ARM_HIGH;
         Vector2d shippingHubPos = new Vector2d((-2.5 * 12), (0.8 * 12));
         double shippingHubHeading = Math.toRadians(45);
+        if (pipeline.position == TeamElementDeterminationPipeline.BarcodePosition.Left)
+        {
+            armTarget = TeleOp.ARM_HIGH;
+        }
+        else if (pipeline.position == TeamElementDeterminationPipeline.BarcodePosition.Center)
+        {
+            armTarget = TeleOp.ARM_MEDIUM;
+        }
+        else if (pipeline.position == TeamElementDeterminationPipeline.BarcodePosition.Right)
+        {
+            armTarget = TeleOp.ARM_LOW;
+        }
+
 
         TrajectorySequence seq = drive.trajectorySequenceBuilder(startPose)
                 .forward(2)
@@ -152,8 +188,7 @@ public class AutoBlueDuck extends LinearOpMode
         /*
          * Some color constants
          */
-        static final Scalar BLUE = new Scalar(0, 0, 255);
-        static final Scalar GREEN = new Scalar(0, 255, 0);
+        static final Scalar WHITE = new Scalar(255, 255, 255);
 
         /*
          * The core values which define the location and size of the sample regions
@@ -239,40 +274,6 @@ public class AutoBlueDuck extends LinearOpMode
             avg3 = (int) Core.mean(region3_Cb).val[0];
 
             /*
-             * Draw a rectangle showing sample region 1 on the screen.
-             * Simply a visual aid. Serves no functional purpose.
-             */
-            Imgproc.rectangle(
-                    input, // Buffer to draw on
-                    region1_pointA, // First point which defines the rectangle
-                    region1_pointB, // Second point which defines the rectangle
-                    BLUE, // The color the rectangle is drawn in
-                    2); // Thickness of the rectangle lines
-
-            /*
-             * Draw a rectangle showing sample region 2 on the screen.
-             * Simply a visual aid. Serves no functional purpose.
-             */
-            Imgproc.rectangle(
-                    input, // Buffer to draw on
-                    region2_pointA, // First point which defines the rectangle
-                    region2_pointB, // Second point which defines the rectangle
-                    BLUE, // The color the rectangle is drawn in
-                    2); // Thickness of the rectangle lines
-
-            /*
-             * Draw a rectangle showing sample region 3 on the screen.
-             * Simply a visual aid. Serves no functional purpose.
-             */
-            Imgproc.rectangle(
-                    input, // Buffer to draw on
-                    region3_pointA, // First point which defines the rectangle
-                    region3_pointB, // Second point which defines the rectangle
-                    BLUE, // The color the rectangle is drawn in
-                    2); // Thickness of the rectangle lines
-
-
-            /*
              * Find the max of the 3 averages
              */
             int maxOneTwo = Math.max(avg1, avg2);
@@ -285,47 +286,14 @@ public class AutoBlueDuck extends LinearOpMode
             if(max == avg1) // Was it from region 1?
             {
                 position = BarcodePosition.Left; // Record our analysis
-
-                /*
-                 * Draw a solid rectangle on top of the chosen region.
-                 * Simply a visual aid. Serves no functional purpose.
-                 */
-                Imgproc.rectangle(
-                        input, // Buffer to draw on
-                        region1_pointA, // First point which defines the rectangle
-                        region1_pointB, // Second point which defines the rectangle
-                        GREEN, // The color the rectangle is drawn in
-                        -1); // Negative thickness means solid fill
             }
             else if(max == avg2) // Was it from region 2?
             {
                 position = BarcodePosition.Center; // Record our analysis
-
-                /*
-                 * Draw a solid rectangle on top of the chosen region.
-                 * Simply a visual aid. Serves no functional purpose.
-                 */
-                Imgproc.rectangle(
-                        input, // Buffer to draw on
-                        region2_pointA, // First point which defines the rectangle
-                        region2_pointB, // Second point which defines the rectangle
-                        GREEN, // The color the rectangle is drawn in
-                        -1); // Negative thickness means solid fill
             }
             else if(max == avg3) // Was it from region 3?
             {
                 position = BarcodePosition.Right; // Record our analysis
-
-                /*
-                 * Draw a solid rectangle on top of the chosen region.
-                 * Simply a visual aid. Serves no functional purpose.
-                 */
-                Imgproc.rectangle(
-                        input, // Buffer to draw on
-                        region3_pointA, // First point which defines the rectangle
-                        region3_pointB, // Second point which defines the rectangle
-                        GREEN, // The color the rectangle is drawn in
-                        -1); // Negative thickness means solid fill
             }
 
             /*
@@ -347,6 +315,8 @@ public class AutoBlueDuck extends LinearOpMode
 
     private TeamElementDeterminationPipeline.BarcodePosition findObject()
     {
+
+
         frontWebcam.openCameraDevice();
 
         frontWebcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
