@@ -75,11 +75,17 @@ public class AutoRedWarehouse extends LinearOpMode
 
 
 
-        Pose2d startPose = new Pose2d(1 * 12, (6 * 12) - 8.375, 0);
-
+        Pose2d startPose = new Pose2d(-3 * 12, (6 * 12) - 8.375, 1 * Math.PI);
 
         drive.setPoseEstimate(startPose);
 
+        TrajectorySequence trajSeq = drive.trajectorySequenceBuilder(startPose)
+                //.splineTo(new Vector2d(8.5 * 12, 3.75 * 12), 1.5 * Math.PI)
+                .splineTo(new Vector2d(-5 * 12, 3 * 12), 1 * Math.PI)
+                //.addSpatialMarker(new Vector2d(8.5 * 12, 3.75 * 12), placeHeldObject)
+                //.addDisplacementMarker(() -> {})
+                .waitSeconds(2)
+                .build();
 
         /*TrajectorySequence trajSeq = drive.trajectorySequenceBuilder(startPose)
                 .splineTo(new Vector2d(10, 10), 0)
@@ -95,13 +101,7 @@ public class AutoRedWarehouse extends LinearOpMode
                 .splineToLinearHeading(new Pose2d(-10, -10, Math.toRadians(45)), 0)
                 .build();*/
 
-        TrajectorySequence trajSeq = drive.trajectorySequenceBuilder(startPose)
-                //.splineTo(new Vector2d(8.5 * 12, 3.75 * 12), 1.5 * Math.PI)
-                .strafeRight(2.5 * 12)
-                //.addSpatialMarker(new Vector2d(8.5 * 12, 3.75 * 12), placeHeldObject)
-                //.addDisplacementMarker(() -> {})
-                .waitSeconds(2)
-                .build();
+
 
         telemetry.addData("%", "Sargon Robotics");
         telemetry.update();
@@ -119,10 +119,17 @@ public class AutoRedWarehouse extends LinearOpMode
         telemetry.update();
 
         //drive.followTrajectorySequenceAsync(trajSeq);
-        drive.followTrajectorySequence(trajSeq);
+        //drive.followTrajectorySequence(trajSeq);
+        drive.followTrajectorySequenceAsync(trajSeq);
+
+        Runnable runnable = () -> { drive.update(); }; // or an anonymous class, or lambda...
+
+        Thread thread = new Thread(runnable);
+        thread.start();
 
         while (!isStopRequested())
         {
+            //drive.update();
             //if (arm.getCurrentPosition() <= -730 && arm.getCurrentPosition() >= -750)
             //  arm.setTargetPosition(-740);
         }

@@ -87,25 +87,34 @@ public class AutoBlueDuck extends LinearOpMode
         // switch on pos
 
         int armTarget = TeleOp.ARM_HIGH; //todo: use camera to find team element for height
-        Vector2d shippingHubPos = new Vector2d((5 * 12), (-5 * 12));
+        Vector2d shippingHubPos = new Vector2d((-2.5 * 12), (0.8 * 12));
         double shippingHubHeading = Math.toRadians(45);
 
         TrajectorySequence seq = drive.trajectorySequenceBuilder(startPose)
-                .forward(5)
-                .strafeTo(new Vector2d((5 * 12), (-5 * 12) ))
+                .forward(2)
+                .strafeTo(new Vector2d((-4.9 * 12), (4.9 * 12) )) // Blue duck carousel
                 .waitSeconds(2) // Wait for ducks to fall
+                .strafeTo(new Vector2d((-5 * 12), (0.5 * 12) ))
                 .addDisplacementMarker(() ->
                 {
+                    // Start moving arm to target
                     arm.setTargetPosition(armTarget);
                     arm.setPower(0.5);
                 })
-                .splineToLinearHeading(new Pose2d(shippingHubPos, shippingHubHeading), shippingHubHeading) // Go to team shipping hub
+                .lineToLinearHeading(new Pose2d(shippingHubPos, Math.toRadians(45))) // Go to team shipping hub
                 .addDisplacementMarker(() ->
                 {
                     dumper.setPosition(TeleOp.DUMPER_RELEASE);
                 })
                 .waitSeconds(2)
-                .splineToLinearHeading(new Pose2d(new Vector2d((5 * 12), (-5 * 12)), Math.toRadians(0)),  Math.toRadians(0))
+                .addDisplacementMarker(() ->
+                {
+                    // Start moving arm to target
+                    arm.setTargetPosition(TeleOp.ARM_INTAKE);
+                    dumper.setPosition(TeleOp.DUMPER_OPEN);
+                    arm.setPower(0.5);
+                })
+                .lineToLinearHeading(new Pose2d(new Vector2d((-5 * 12), (2.9 * 12)),  Math.toRadians(0)))
                 .build();
 
 

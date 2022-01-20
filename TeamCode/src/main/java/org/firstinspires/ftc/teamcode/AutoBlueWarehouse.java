@@ -16,6 +16,7 @@ import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
+import org.firstinspires.ftc.teamcode.TeleOp;
 
 import java.util.List;
 
@@ -75,38 +76,52 @@ public class AutoBlueWarehouse extends LinearOpMode
 
 
 
-        Pose2d startPose = new Pose2d(1 * 12, (-6 * 12) + 8.375, 0);
-
+        Pose2d startPose = new Pose2d(1 * 12, (6 * 12) - 8.375, Math.toRadians(270));
 
         drive.setPoseEstimate(startPose);
 
-
-        /*TrajectorySequence trajSeq = drive.trajectorySequenceBuilder(startPose)
-                .splineTo(new Vector2d(10, 10), 0)
-                .turn(Math.toRadians(90))
-                .splineTo(new Vector2d(25, -15), 0)
-                .waitSeconds(3)
-                .turn(Math.toRadians(45))
-                .forward(10)
-                .strafeRight(5)
-                .turn(Math.toRadians(90))
-                .strafeLeft(5)
-                .waitSeconds(1)
-                .splineToLinearHeading(new Pose2d(-10, -10, Math.toRadians(45)), 0)
-                .build();*/
-
-        TrajectorySequence trajSeq = drive.trajectorySequenceBuilder(startPose)
-                //.splineTo(new Vector2d(8.5 * 12, 3.75 * 12), 1.5 * Math.PI)
-                .strafeLeft(2.5 * 12)
-                //.addSpatialMarker(new Vector2d(8.5 * 12, 3.75 * 12), placeHeldObject)
-                //.addDisplacementMarker(() -> {})
-                .waitSeconds(2)
-                .build();
-
-        telemetry.addData("%", "Sargon Robotics");
-        telemetry.update();
+        //.addDisplacementMarker(() -> {})
 
         waitForStart();
+
+        // switch on pos
+
+        int armTarget = TeleOp.ARM_HIGH; //todo: use camera to find team element for height
+        Vector2d shippingHubPos = new Vector2d((-2.5 * 12), (0.8 * 12));
+        double shippingHubHeading = Math.toRadians(45);
+
+        TrajectorySequence seq = drive.trajectorySequenceBuilder(startPose)
+                .strafeTo(new Vector2d((1 * 12), (1 * 12) ))
+                .addDisplacementMarker(() ->
+                {
+                    // Start moving arm to target
+                    arm.setTargetPosition(armTarget);
+                    arm.setPower(0.5);
+                })
+                .lineToLinearHeading(new Pose2d(new Vector2d((0.2 * 12), (0.8 * 12)), Math.toRadians(135))) // Go to team shipping hub
+                .addDisplacementMarker(() ->
+                {
+                    dumper.setPosition(TeleOp.DUMPER_RELEASE);
+                })
+                .waitSeconds(2)
+                .addDisplacementMarker(() ->
+                {
+                    // Start moving arm to target
+                    arm.setTargetPosition(TeleOp.ARM_INTAKE);
+                    dumper.setPosition(TeleOp.DUMPER_OPEN);
+                    arm.setPower(0.5);
+                })
+                .lineToLinearHeading(new Pose2d(new Vector2d((1 * 12), (1 * 12) ), Math.toRadians(0)))
+                .lineToLinearHeading(new Pose2d(new Vector2d(1 * 12, (5.5 * 12) - 8.375), Math.toRadians(0))) // Go near wall
+                .strafeLeft((.5 * 12))
+                .forward(2.5 * 12)
+                .build();
+
+
+
+
+
+
 
         carouselLeft.setPower(0.5);
         carouselRight.setPower(0.5);
@@ -118,14 +133,14 @@ public class AutoBlueWarehouse extends LinearOpMode
         telemetry.addData("%", "Barcode Position: " + findObject().toString());
         telemetry.update();
 
-        //drive.followTrajectorySequenceAsync(trajSeq);
-        drive.followTrajectorySequence(trajSeq);
 
-        while (!isStopRequested())
-        {
-            //if (arm.getCurrentPosition() <= -730 && arm.getCurrentPosition() >= -750)
-            //  arm.setTargetPosition(-740);
-        }
+        carouselRight.setPower(0.5);
+        dumper.setPosition(TeleOp.DUMPER_HOLD);
+
+        drive.followTrajectorySequence(seq);
+
+        carouselRight.setPower(0.0);
+
 
 
     }
