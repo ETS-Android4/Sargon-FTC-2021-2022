@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -17,47 +18,39 @@ import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.TeleOp;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.features2d.SimpleBlobDetector;
+import org.opencv.features2d.SimpleBlobDetector_Params;
+import org.opencv.imgproc.Imgproc;
+import org.openftc.easyopencv.OpenCvCamera;
+import org.openftc.easyopencv.OpenCvCameraFactory;
+import org.openftc.easyopencv.OpenCvCameraRotation;
+import org.openftc.easyopencv.OpenCvInternalCamera;
+import org.openftc.easyopencv.OpenCvPipeline;
 
 import java.util.List;
 
 @Autonomous
+@Config
 public class AutoBlueDuck extends LinearOpMode
 {
-    enum BarcodePosition
-    {
-        Unknown,
-        Left,
-        Middle,
-        Right
-    }
-
-
-
-    private static final String TFOD_MODEL_ASSET = "FreightFrenzy_BCDM.tflite";
-    private static final String[] LABELS = {
-            "Ball",
-            "Cube",
-            "Duck",
-            "Marker",
-            "TeamFabric"
-    };
-
-    private static final String VUFORIA_KEY = "AQfwG73/////AAABmaET3hUmm0WIjCN9wIx3AKA6l22iwwwVNCUbgJkn4v5KLzvswWwlRaShGcgpS2jgvjX+aBry9XKAoM0JeE1yFK1hpyDD3+mR68nn4uT/NoAKQvTDPC2a6+3rN91dN5qyCwg0UWv3oslFUIjQIX9HZBuRjVdHYfS1LU/Ea93hQ0wxulW3Hij8gdqRstJSYTi9u+IiGyYzv560wYoH5wZP2rJxbB3Av/E6O1C08lYAjKgRPMqsl27Wy1CA+lKzJ0pVYjRA3Z4+9AaQFFzFPjTKHPxXG75lzYXj0eB/aA8K91fokCK16SJp5xNJqoccpgO1t3IO7B1CVonzAEz9juq+WBsGPRffzMAxanmczBJjgh7Y";
-    private VuforiaLocalizer vuforia;
-    private TFObjectDetector tfod;
-
     private DcMotorEx carouselLeft = null;
     private DcMotorEx carouselRight = null;
     private DcMotorEx intake = null;
     private Servo dumper = null;
     private DcMotorEx arm = null;
 
+    public static double startingX = -3 * 12;
+    public static double startingY = (6 * 12) + 8.375;
+    public static double startingHeading = 0;
 
-    private void placeHeldObject()
-    {
-        //arm.setTargetPosition(-740);
+    private OpenCvCamera frontWebcam = null;
 
-    }
+
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -71,20 +64,17 @@ public class AutoBlueDuck extends LinearOpMode
         intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
         intake.setDirection(DcMotor.Direction.REVERSE);
 
-        //arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
-        //arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
+        arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        WebcamName frontWebcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
+        OpenCvCamera frontWebcam = OpenCvCameraFactory.getInstance().createWebcam(frontWebcamName);
 
 
-
-        Pose2d startPose = new Pose2d(-3 * 12, (6 * 12) + 8.375, 0);
-
+        Pose2d startPose = new Pose2d(startingX, startingY, startingHeading);
         drive.setPoseEstimate(startPose);
 
-        //.addDisplacementMarker(() -> {})
-
         waitForStart();
-
-        // switch on pos
 
         int armTarget = TeleOp.ARM_HIGH; //todo: use camera to find team element for height
         Vector2d shippingHubPos = new Vector2d((-2.5 * 12), (0.8 * 12));
@@ -99,6 +89,7 @@ public class AutoBlueDuck extends LinearOpMode
                 {
                     // Start moving arm to target
                     arm.setTargetPosition(armTarget);
+                    arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                     arm.setPower(0.5);
                 })
                 .lineToLinearHeading(new Pose2d(shippingHubPos, Math.toRadians(45))) // Go to team shipping hub
@@ -145,78 +136,229 @@ public class AutoBlueDuck extends LinearOpMode
 
     }
 
-    private BarcodePosition findObject()
+    public static class TeamElementDeterminationPipeline extends OpenCvPipeline
     {
-        if (tfod != null) {
-            // getUpdatedRecognitions() will return null if no new information is available since
-            // the last time that call was made.
-            List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-            if (updatedRecognitions != null) {
-                telemetry.addData("# Object Detected", updatedRecognitions.size());
-                // step through the list of recognitions and display boundary info.
-                int i = 0;
-                for (Recognition recognition : updatedRecognitions) {
-                    telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
-                    telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
-                            recognition.getLeft(), recognition.getTop());
-                    telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
-                            recognition.getRight(), recognition.getBottom());
-                    i++;
-                }
-                telemetry.update();
-            }
-        }
-
-        return BarcodePosition.Unknown;
-    }
-
-    private void initObjectRecognition()
-    {
-        initVuforia();
-        initTfod();
-
-        if (tfod != null) {
-            tfod.activate();
-
-            // The TensorFlow software will scale the input images from the camera to a lower resolution.
-            // This can result in lower detection accuracy at longer distances (> 55cm or 22").
-            // If your target is at distance greater than 50 cm (20") you can adjust the magnification value
-            // to artificially zoom in to the center of image.  For best results, the "aspectRatio" argument
-            // should be set to the value of the images used to create the TensorFlow Object Detection model
-            // (typically 16/9).
-            tfod.setZoom(2.5, 16.0/9.0);
-        }
-    }
-
-    /**
-     * Initialize the Vuforia localization engine.
-     */
-    private void initVuforia() {
         /*
-         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
+         * An enum to define the skystone position
          */
-        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+        enum BarcodePosition
+        {
+            Unknown,
+            Left,
+            Center,
+            Right
+        }
 
-        parameters.vuforiaLicenseKey = VUFORIA_KEY;
-        parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam 1");
+        /*
+         * Some color constants
+         */
+        static final Scalar BLUE = new Scalar(0, 0, 255);
+        static final Scalar GREEN = new Scalar(0, 255, 0);
 
-        //  Instantiate the Vuforia engine
-        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+        /*
+         * The core values which define the location and size of the sample regions
+         */
+        static final Point REGION1_TOPLEFT_ANCHOR_POINT = new Point(0,0);
+        static final Point REGION2_TOPLEFT_ANCHOR_POINT = new Point(106,0);
+        static final Point REGION3_TOPLEFT_ANCHOR_POINT = new Point(213,0);
+        static final int REGION_WIDTH = 20;
+        static final int REGION_HEIGHT = 20;
 
-        // Loading trackables is not necessary for the TensorFlow Object Detection engine.
+        /*
+         * Points which actually define the sample region rectangles, derived from above values
+         *
+         * Example of how points A and B work to define a rectangle
+         *
+         *   ------------------------------------
+         *   | (0,0) Point A                    |
+         *   |                                  |
+         *   |                                  |
+         *   |                                  |
+         *   |                                  |
+         *   |                                  |
+         *   |                                  |
+         *   |                  Point B (70,50) |
+         *   ------------------------------------
+         *
+         */
+        Point region1_pointA = new Point(
+                REGION1_TOPLEFT_ANCHOR_POINT.x,
+                REGION1_TOPLEFT_ANCHOR_POINT.y);
+        Point region1_pointB = new Point(
+                REGION1_TOPLEFT_ANCHOR_POINT.x + REGION_WIDTH,
+                REGION1_TOPLEFT_ANCHOR_POINT.y + REGION_HEIGHT);
+        Point region2_pointA = new Point(
+                REGION2_TOPLEFT_ANCHOR_POINT.x,
+                REGION2_TOPLEFT_ANCHOR_POINT.y);
+        Point region2_pointB = new Point(
+                REGION2_TOPLEFT_ANCHOR_POINT.x + REGION_WIDTH,
+                REGION2_TOPLEFT_ANCHOR_POINT.y + REGION_HEIGHT);
+        Point region3_pointA = new Point(
+                REGION3_TOPLEFT_ANCHOR_POINT.x,
+                REGION3_TOPLEFT_ANCHOR_POINT.y);
+        Point region3_pointB = new Point(
+                REGION3_TOPLEFT_ANCHOR_POINT.x + REGION_WIDTH,
+                REGION3_TOPLEFT_ANCHOR_POINT.y + REGION_HEIGHT);
+
+        /*
+         * Working variables
+         */
+        Mat region1_Cb, region2_Cb, region3_Cb;
+        Mat YCrCb = new Mat();
+        Mat Cb = new Mat();
+        int avg1, avg2, avg3;
+
+        // Volatile since accessed by OpMode thread w/o synchronization
+        private volatile BarcodePosition position = BarcodePosition.Left;
+
+        @Override
+        public void init(Mat firstFrame)
+        {
+            /*
+             * Submats are a persistent reference to a region of the parent
+             * buffer. Any changes to the child affect the parent, and the
+             * reverse also holds true.
+             */
+            region1_Cb = Cb.submat(new Rect(region1_pointA, region1_pointB));
+            region2_Cb = Cb.submat(new Rect(region2_pointA, region2_pointB));
+            region3_Cb = Cb.submat(new Rect(region3_pointA, region3_pointB));
+        }
+
+        @Override
+        public Mat processFrame(Mat input)
+        {
+            /*
+             * Compute the average pixel value of each submat region. We're
+             * taking the average of a single channel buffer, so the value
+             * we need is at index 0. We could have also taken the average
+             * pixel value of the 3-channel image, and referenced the value
+             * at index 2 here.
+             */
+            avg1 = (int) Core.mean(region1_Cb).val[0];
+            avg2 = (int) Core.mean(region2_Cb).val[0];
+            avg3 = (int) Core.mean(region3_Cb).val[0];
+
+            /*
+             * Draw a rectangle showing sample region 1 on the screen.
+             * Simply a visual aid. Serves no functional purpose.
+             */
+            Imgproc.rectangle(
+                    input, // Buffer to draw on
+                    region1_pointA, // First point which defines the rectangle
+                    region1_pointB, // Second point which defines the rectangle
+                    BLUE, // The color the rectangle is drawn in
+                    2); // Thickness of the rectangle lines
+
+            /*
+             * Draw a rectangle showing sample region 2 on the screen.
+             * Simply a visual aid. Serves no functional purpose.
+             */
+            Imgproc.rectangle(
+                    input, // Buffer to draw on
+                    region2_pointA, // First point which defines the rectangle
+                    region2_pointB, // Second point which defines the rectangle
+                    BLUE, // The color the rectangle is drawn in
+                    2); // Thickness of the rectangle lines
+
+            /*
+             * Draw a rectangle showing sample region 3 on the screen.
+             * Simply a visual aid. Serves no functional purpose.
+             */
+            Imgproc.rectangle(
+                    input, // Buffer to draw on
+                    region3_pointA, // First point which defines the rectangle
+                    region3_pointB, // Second point which defines the rectangle
+                    BLUE, // The color the rectangle is drawn in
+                    2); // Thickness of the rectangle lines
+
+
+            /*
+             * Find the max of the 3 averages
+             */
+            int maxOneTwo = Math.max(avg1, avg2);
+            int max = Math.max(maxOneTwo, avg3);
+
+            /*
+             * Now that we found the max, we actually need to go and
+             * figure out which sample region that value was from
+             */
+            if(max == avg1) // Was it from region 1?
+            {
+                position = BarcodePosition.Left; // Record our analysis
+
+                /*
+                 * Draw a solid rectangle on top of the chosen region.
+                 * Simply a visual aid. Serves no functional purpose.
+                 */
+                Imgproc.rectangle(
+                        input, // Buffer to draw on
+                        region1_pointA, // First point which defines the rectangle
+                        region1_pointB, // Second point which defines the rectangle
+                        GREEN, // The color the rectangle is drawn in
+                        -1); // Negative thickness means solid fill
+            }
+            else if(max == avg2) // Was it from region 2?
+            {
+                position = BarcodePosition.Center; // Record our analysis
+
+                /*
+                 * Draw a solid rectangle on top of the chosen region.
+                 * Simply a visual aid. Serves no functional purpose.
+                 */
+                Imgproc.rectangle(
+                        input, // Buffer to draw on
+                        region2_pointA, // First point which defines the rectangle
+                        region2_pointB, // Second point which defines the rectangle
+                        GREEN, // The color the rectangle is drawn in
+                        -1); // Negative thickness means solid fill
+            }
+            else if(max == avg3) // Was it from region 3?
+            {
+                position = BarcodePosition.Right; // Record our analysis
+
+                /*
+                 * Draw a solid rectangle on top of the chosen region.
+                 * Simply a visual aid. Serves no functional purpose.
+                 */
+                Imgproc.rectangle(
+                        input, // Buffer to draw on
+                        region3_pointA, // First point which defines the rectangle
+                        region3_pointB, // Second point which defines the rectangle
+                        GREEN, // The color the rectangle is drawn in
+                        -1); // Negative thickness means solid fill
+            }
+
+            /*
+             * Render the 'input' buffer to the viewport. But note this is not
+             * simply rendering the raw camera feed, because we called functions
+             * to add some annotations to this buffer earlier up.
+             */
+            return input;
+        }
+
+        /*
+         * Call this from the OpMode thread to obtain the latest analysis
+         */
+        public BarcodePosition getAnalysis()
+        {
+            return position;
+        }
     }
 
-    /**
-     * Initialize the TensorFlow Object Detection engine.
-     */
-    private void initTfod() {
-        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
-                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-        tfodParameters.minResultConfidence = 0.8f;
-        tfodParameters.isModelTensorFlow2 = true;
-        tfodParameters.inputSize = 320;
-        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
-        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABELS);
+    private TeamElementDeterminationPipeline.BarcodePosition findObject()
+    {
+        frontWebcam.openCameraDevice();
+
+        frontWebcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
+
+        //frontWebcam.getFrameBitmap();
+
+        SimpleBlobDetector_Params params = new SimpleBlobDetector_Params();
+        params.set_filterByColor(true);
+
+        SimpleBlobDetector detector = SimpleBlobDetector.create(params);
+        //detector.detectAndCompute();
+
+        return TeamElementDeterminationPipeline.BarcodePosition.Unknown;
     }
 }
