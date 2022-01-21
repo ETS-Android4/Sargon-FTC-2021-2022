@@ -11,6 +11,7 @@ import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
+import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvPipeline;
 
 public class TeamElementDetermination
@@ -25,6 +26,7 @@ public class TeamElementDetermination
         pipeline = new Pipeline(_telemetry);
         frontWebcam.setPipeline(pipeline);
         frontWebcam.openCameraDevice();
+        frontWebcam.startStreaming(320,240, OpenCvCameraRotation.UPRIGHT);
     }
 
 
@@ -144,9 +146,6 @@ public class TeamElementDetermination
             double avg2 = mean(avgs2);
             double avg3 = mean(avgs3);
 
-            telemetry.addData(">", String.format("%f %f %f", avg1, avg2, avg3));
-            telemetry.update();
-
             /*
              * Find the max of the 3 averages
              */
@@ -169,6 +168,9 @@ public class TeamElementDetermination
             {
                 position = BarcodePosition.Right; // Record our analysis
             }
+
+            telemetry.addData(">", String.format("%f %f %f %s", avg1, avg2, avg3, position.toString()));
+            telemetry.update();
 
             /*
              * Render the 'input' buffer to the viewport. But note this is not

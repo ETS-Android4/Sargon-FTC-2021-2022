@@ -141,18 +141,14 @@ public class AutoBlueDuck extends LinearOpMode
 
 
 
-
+        while(!isStopRequested())
+        {
+            sleep(50);
+        }
 
 
         carouselLeft.setPower(0.5);
         carouselRight.setPower(0.5);
-
-        //arm.setTargetPosition(-740);
-        //arm.setDirection(DcMotorSimple.Direction.REVERSE);
-        ///arm.setPower(-0.5);
-
-        //telemetry.addData("%", "Barcode Position: " + findObject().toString());
-        //telemetry.update();
 
 
         carouselRight.setPower(0.5);
@@ -161,29 +157,9 @@ public class AutoBlueDuck extends LinearOpMode
         drive.followTrajectorySequence(seq);
 
         carouselRight.setPower(0.0);
+        dumper.setPosition(TeleOp.DUMPER_OPEN);
 
 
 
     }
-
-
-
-    /*private TeamElementDetermination.BarcodePosition findObject()
-    {
-
-
-        frontWebcam.openCameraDevice();
-
-        frontWebcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
-
-        //frontWebcam.getFrameBitmap();
-
-        SimpleBlobDetector_Params params = new SimpleBlobDetector_Params();
-        params.set_filterByColor(true);
-
-        SimpleBlobDetector detector = SimpleBlobDetector.create(params);
-        //detector.detectAndCompute();
-
-        return TeamElementDeterminationPipeline.BarcodePosition.Unknown;
-    }*/
 }
