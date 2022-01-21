@@ -196,6 +196,9 @@ public class Stats extends LinearOpMode {
         while (opModeIsActive()) {
             telemetry.addLine("armPos" + arm.getCurrentPosition());
             telemetry.addLine("armTarget " + armTarget);
+            telemetry.addLine("armVelocity" + arm.getVelocity());
+
+            telemetry.addLine("dumperPos " + dumper.getPosition());
 
             telemetry.update();
         }
