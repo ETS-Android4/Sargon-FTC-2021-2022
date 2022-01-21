@@ -149,15 +149,14 @@ public class AutoBlueDuck extends LinearOpMode
         dumper.setPosition(TeleOp.DUMPER_RELEASE);
         sleep(2000);
 
-        drive.followTrajectorySequence(seq3);
-
         // Start moving arm to neutral
         arm.setTargetPosition(TeleOp.ARM_INTAKE);
         dumper.setPosition(TeleOp.DUMPER_OPEN);
         arm.setPower(0.1);
         intake.setPower(-0.1);
+        sleep(4000); // Wait for arm to return
 
-        sleep(4000);
+        drive.followTrajectorySequence(seq3); // Go to ending box, park completely
 
         carouselRight.setPower(0.0);
         dumper.setPosition(TeleOp.DUMPER_OPEN);
