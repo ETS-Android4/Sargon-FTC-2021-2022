@@ -69,25 +69,13 @@ public class AutoBlueDuck extends LinearOpMode
         arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
         arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        WebcamName frontWebcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
-        OpenCvCamera frontWebcam = OpenCvCameraFactory.getInstance().createWebcam(frontWebcamName);
-        pipeline = new TeamElementDeterminationPipeline();
-        frontWebcam.setPipeline(pipeline);
-        frontWebcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener()
-        {
-            @Override
-            public void onOpened()
-            {
-                frontWebcam.startStreaming(320,240, OpenCvCameraRotation.UPRIGHT);
-            }
+        dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
-            @Override
-            public void onError(int errorCode)
-            {
-                telemetry.addData("!", "FAILED TO INIT CAMERA");
-                telemetry.update();
-            }
-        });
+        WebcamName frontWebcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
+        frontWebcam = OpenCvCameraFactory.getInstance().createWebcam(frontWebcamName);
+        pipeline = new TeamElementDeterminationPipeline(telemetry);
+        frontWebcam.setPipeline(pipeline);
+        frontWebcam.openCameraDevice();
 
 
         Pose2d startPose = new Pose2d(startingX, startingY, startingHeading);
@@ -115,6 +103,8 @@ public class AutoBlueDuck extends LinearOpMode
             armTarget = TeleOp.ARM_LOW;
         }
 
+        final int armTargetFinal = armTarget;
+
 
         TrajectorySequence seq = drive.trajectorySequenceBuilder(startPose)
                 .forward(2)
@@ -124,7 +114,7 @@ public class AutoBlueDuck extends LinearOpMode
                 .addDisplacementMarker(() ->
                 {
                     // Start moving arm to target
-                    arm.setTargetPosition(armTarget);
+                    arm.setTargetPosition(armTargetFinal);
                     arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                     arm.setPower(0.5);
                 })
@@ -174,9 +164,12 @@ public class AutoBlueDuck extends LinearOpMode
 
     public static class TeamElementDeterminationPipeline extends OpenCvPipeline
     {
-        /*
-         * An enum to define the skystone position
-         */
+        Telemetry telemetry;
+        TeamElementDeterminationPipeline(Telemetry _telemetry)
+        {
+            telemetry = _telemetry;
+        }
+
         enum BarcodePosition
         {
             Unknown,
@@ -185,15 +178,12 @@ public class AutoBlueDuck extends LinearOpMode
             Right
         }
 
-        /*
-         * Some color constants
-         */
         static final Scalar WHITE = new Scalar(255, 255, 255);
 
         /*
          * The core values which define the location and size of the sample regions
          */
-        static final Point REGION1_TOPLEFT_ANCHOR_POINT = new Point(0,0);
+        static final Point REGION1_TOPLEFT_ANCHOR_POINT = new Point(20,20);
         static final Point REGION2_TOPLEFT_ANCHOR_POINT = new Point(106,0);
         static final Point REGION3_TOPLEFT_ANCHOR_POINT = new Point(213,0);
         static final int REGION_WIDTH = 20;
@@ -249,19 +239,18 @@ public class AutoBlueDuck extends LinearOpMode
         @Override
         public void init(Mat firstFrame)
         {
-            /*
-             * Submats are a persistent reference to a region of the parent
-             * buffer. Any changes to the child affect the parent, and the
-             * reverse also holds true.
-             */
-            region1_Cb = Cb.submat(new Rect(region1_pointA, region1_pointB));
-            region2_Cb = Cb.submat(new Rect(region2_pointA, region2_pointB));
-            region3_Cb = Cb.submat(new Rect(region3_pointA, region3_pointB));
+            region1_Cb = firstFrame.submat(new Rect(region1_pointA, region1_pointB));
+            region2_Cb = firstFrame.submat(new Rect(region2_pointA, region2_pointB));
+            region3_Cb = firstFrame.submat(new Rect(region3_pointA, region3_pointB));
         }
 
         @Override
         public Mat processFrame(Mat input)
         {
+            region1_Cb = input.submat(new Rect(region1_pointA, region1_pointB));
+            region2_Cb = input.submat(new Rect(region2_pointA, region2_pointB));
+            region3_Cb = input.submat(new Rect(region3_pointA, region3_pointB));
+
             /*
              * Compute the average pixel value of each submat region. We're
              * taking the average of a single channel buffer, so the value
@@ -269,9 +258,20 @@ public class AutoBlueDuck extends LinearOpMode
              * pixel value of the 3-channel image, and referenced the value
              * at index 2 here.
              */
+
+            double[] avgs1 = Core.mean(region1_Cb).val;
+            double[] avgs2 = Core.mean(region2_Cb).val;
+            double[] avgs3 = Core.mean(region3_Cb).val;
+
+            //avgs1.
+
+
             avg1 = (int) Core.mean(region1_Cb).val[0];
             avg2 = (int) Core.mean(region2_Cb).val[0];
             avg3 = (int) Core.mean(region3_Cb).val[0];
+
+            telemetry.addData(">", String.format("%f %f %f", avg1, avg2, avg3));
+            telemetry.update();
 
             /*
              * Find the max of the 3 averages
