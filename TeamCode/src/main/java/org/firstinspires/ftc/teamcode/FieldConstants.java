@@ -1,13 +1,13 @@
-package com.vcinventerman.meepmeeptest;
+package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
-import com.noahbres.meepmeep.MeepMeep;
-import com.noahbres.meepmeep.roadrunner.DefaultBotBuilder;
-import com.noahbres.meepmeep.roadrunner.entity.RoadRunnerBotEntity;
+import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 
-public class MeepMeepTest {
-
+@Config
+public class FieldConstants
+{
     public static final double robotRadius = 8.375; // Length from center of robot to back
 
 
@@ -66,62 +66,4 @@ public class MeepMeepTest {
     public static final double blueDuckSpinnerX = -6 * 12;
     public static final double blueDuckSpinnerY = 6 * 12;
     public static final Vector2d blueDuckSpinnerPos = new Vector2d(blueDuckSpinnerX, blueDuckSpinnerY);
-
-
-
-
-
-
-    public static void main(String[] args) {
-        MeepMeep meepMeep = new MeepMeep(800).setBackground(MeepMeep.Background.FIELD_FREIGHTFRENZY_ADI_DARK);
-
-        RoadRunnerBotEntity myBot = new DefaultBotBuilder(meepMeep)
-                // Set bot constraints: maxVel, maxAccel, maxAngVel, maxAngAccel, track width
-                .setConstraints(60, 60, Math.toRadians(180), Math.toRadians(180), 15)
-                .setDimensions(13, 8.375 * 2)
-                /*.followTrajectorySequence(drive ->
-                        drive.trajectorySequenceBuilder(new Pose2d(1 * 12, (6 * 12) - 8.375, Math.toRadians(270)))
-                                .strafeTo(new Vector2d((-1 * 12) + 18.38477631, (2 * 12) + 18.38477631))
-                                .turn(Math.toRadians(-45))
-                                .lineToLinearHeading(new Pose2d(new Vector2d(1 * 12, (5.5 * 12) - 8.375), Math.toRadians(0))) // Go near wall
-                                .strafeLeft((.5 * 12))
-                                .forward(2.5 * 12)
-                                .build()
-
-                );*/
-
-                .followTrajectorySequence(drive ->
-                        drive.trajectorySequenceBuilder(blueDuckStartingPose)
-                                .strafeTo(new Vector2d((-4.9 * 12), (4.9 * 12) )) // Blue duck carousel
-                                .waitSeconds(2) // Wait for ducks to fall
-                                .lineToLinearHeading(new Pose2d((-5 * 12), (2 * 12), 0)) // In line with shipping hub
-                                .strafeTo(new Vector2d(blueShippingHubX - armHighOffset, blueShippingHubY)) // Approach shipping hub
-                                .strafeTo(new Vector2d((-5 * 12), (2 * 12))) // Return to scoring square
-                                .strafeTo(new Vector2d((-5 * 12), (2.9 * 12)))
-
-
-
-
-
-                .build()
-                );
-
-        meepMeep.setBackground(MeepMeep.Background.FIELD_FREIGHTFRENZY_ADI_DARK)
-                .setDarkMode(true)
-                .setBackgroundAlpha(0.95f)
-                .addEntity(myBot)
-                .start();
-    }
-
-
-
-
-
-
-
-
-
-
-
-
 }

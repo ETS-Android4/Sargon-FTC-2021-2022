@@ -18,7 +18,9 @@ import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
+import org.firstinspires.ftc.teamcode.FieldConstants;
 import org.firstinspires.ftc.teamcode.TeleOp;
+import org.firstinspires.ftc.teamcode.TeamElementDetermination;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -45,13 +47,7 @@ public class AutoBlueDuck extends LinearOpMode
     private Servo dumper = null;
     private DcMotorEx arm = null;
 
-    public static double startingX = -3 * 12;
-    public static double startingY = (6 * 12) + 8.375;
-    public static double startingHeading = 0;
-
-    private OpenCvCamera frontWebcam = null;
-    private TeamElementDeterminationPipeline pipeline = null;
-
+    TeamElementDetermination determiner = null;
 
 
     @Override
@@ -71,15 +67,10 @@ public class AutoBlueDuck extends LinearOpMode
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
-        WebcamName frontWebcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
-        frontWebcam = OpenCvCameraFactory.getInstance().createWebcam(frontWebcamName);
-        pipeline = new TeamElementDeterminationPipeline(telemetry);
-        frontWebcam.setPipeline(pipeline);
-        frontWebcam.openCameraDevice();
+        determiner = new TeamElementDetermination(hardwareMap, telemetry);
+        determiner.result();
 
-
-        Pose2d startPose = new Pose2d(startingX, startingY, startingHeading);
-        drive.setPoseEstimate(startPose);
+        drive.setPoseEstimate(FieldConstants.blueDuckStartingPose);
 
         waitForStart();
 
@@ -90,27 +81,39 @@ public class AutoBlueDuck extends LinearOpMode
         int armTarget = TeleOp.ARM_HIGH;
         Vector2d shippingHubPos = new Vector2d((-2.5 * 12), (0.8 * 12));
         double shippingHubHeading = Math.toRadians(45);
-        if (pipeline.position == TeamElementDeterminationPipeline.BarcodePosition.Left)
+        TeamElementDetermination.BarcodePosition position = determiner.result();
+
+        if (position == TeamElementDetermination.BarcodePosition.Left)
         {
             armTarget = TeleOp.ARM_HIGH;
+            shippingHubPos = new Vector2d(FieldConstants.blueShippingHubPos - FieldConstants.armHighOffset,
+                    FieldConstants.blueShippingHubPos + FieldConstants.armHighOffset);
         }
-        else if (pipeline.position == TeamElementDeterminationPipeline.BarcodePosition.Center)
+        else if (position == TeamElementDetermination.BarcodePosition.Center)
         {
             armTarget = TeleOp.ARM_MEDIUM;
+            shippingHubPos = new Vector2d(FieldConstants.blueShippingHubPos - FieldConstants.armMedOffset,
+                    FieldConstants.blueShippingHubPos + FieldConstants.armMedOffset);
         }
-        else if (pipeline.position == TeamElementDeterminationPipeline.BarcodePosition.Right)
+        else if (position == TeamElementDetermination.BarcodePosition.Right)
         {
             armTarget = TeleOp.ARM_LOW;
+            shippingHubPos = new Vector2d(FieldConstants.blueShippingHubPos - FieldConstants.armLowOffset,
+                    FieldConstants.blueShippingHubPos + FieldConstants.armLowOffset);
+        }
+        else
+        {
+            telemetry.addData("!", "INVALID BARCODE");
+            telemetry.update();
         }
 
         final int armTargetFinal = armTarget;
 
 
         TrajectorySequence seq = drive.trajectorySequenceBuilder(startPose)
-                .forward(2)
                 .strafeTo(new Vector2d((-4.9 * 12), (4.9 * 12) )) // Blue duck carousel
                 .waitSeconds(2) // Wait for ducks to fall
-                .strafeTo(new Vector2d((-5 * 12), (0.5 * 12) ))
+                .lineToLinearHeading(new Pose2d((-5 * 12), (2 * 12), 0)) // In line with shipping hub
                 .addDisplacementMarker(() ->
                 {
                     // Start moving arm to target
@@ -118,7 +121,7 @@ public class AutoBlueDuck extends LinearOpMode
                     arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                     arm.setPower(0.5);
                 })
-                .lineToLinearHeading(new Pose2d(shippingHubPos, Math.toRadians(45))) // Go to team shipping hub
+                .strafeTo(new Vector2d(FieldConstants.blueShippingHubX - FieldConstants.armHighOffset, FieldConstants.blueShippingHubY)) // Approach shipping hub
                 .addDisplacementMarker(() ->
                 {
                     dumper.setPosition(TeleOp.DUMPER_RELEASE);
@@ -126,12 +129,13 @@ public class AutoBlueDuck extends LinearOpMode
                 .waitSeconds(2)
                 .addDisplacementMarker(() ->
                 {
-                    // Start moving arm to target
+                    // Start moving arm to neutral
                     arm.setTargetPosition(TeleOp.ARM_INTAKE);
                     dumper.setPosition(TeleOp.DUMPER_OPEN);
                     arm.setPower(0.5);
                 })
-                .lineToLinearHeading(new Pose2d(new Vector2d((-5 * 12), (2.9 * 12)),  Math.toRadians(0)))
+                .strafeTo(new Vector2d((-5 * 12), (2 * 12))) // Return to scoring square
+                .strafeTo(new Vector2d((-5 * 12), (2.9 * 12)))
                 .build();
 
 
@@ -147,8 +151,8 @@ public class AutoBlueDuck extends LinearOpMode
         //arm.setDirection(DcMotorSimple.Direction.REVERSE);
         ///arm.setPower(-0.5);
 
-        telemetry.addData("%", "Barcode Position: " + findObject().toString());
-        telemetry.update();
+        //telemetry.addData("%", "Barcode Position: " + findObject().toString());
+        //telemetry.update();
 
 
         carouselRight.setPower(0.5);
@@ -162,158 +166,9 @@ public class AutoBlueDuck extends LinearOpMode
 
     }
 
-    public static class TeamElementDeterminationPipeline extends OpenCvPipeline
-    {
-        Telemetry telemetry;
-        TeamElementDeterminationPipeline(Telemetry _telemetry)
-        {
-            telemetry = _telemetry;
-        }
-
-        enum BarcodePosition
-        {
-            Unknown,
-            Left,
-            Center,
-            Right
-        }
-
-        static final Scalar WHITE = new Scalar(255, 255, 255);
-
-        /*
-         * The core values which define the location and size of the sample regions
-         */
-        static final Point REGION1_TOPLEFT_ANCHOR_POINT = new Point(20,20);
-        static final Point REGION2_TOPLEFT_ANCHOR_POINT = new Point(106,0);
-        static final Point REGION3_TOPLEFT_ANCHOR_POINT = new Point(213,0);
-        static final int REGION_WIDTH = 20;
-        static final int REGION_HEIGHT = 20;
-
-        /*
-         * Points which actually define the sample region rectangles, derived from above values
-         *
-         * Example of how points A and B work to define a rectangle
-         *
-         *   ------------------------------------
-         *   | (0,0) Point A                    |
-         *   |                                  |
-         *   |                                  |
-         *   |                                  |
-         *   |                                  |
-         *   |                                  |
-         *   |                                  |
-         *   |                  Point B (70,50) |
-         *   ------------------------------------
-         *
-         */
-        Point region1_pointA = new Point(
-                REGION1_TOPLEFT_ANCHOR_POINT.x,
-                REGION1_TOPLEFT_ANCHOR_POINT.y);
-        Point region1_pointB = new Point(
-                REGION1_TOPLEFT_ANCHOR_POINT.x + REGION_WIDTH,
-                REGION1_TOPLEFT_ANCHOR_POINT.y + REGION_HEIGHT);
-        Point region2_pointA = new Point(
-                REGION2_TOPLEFT_ANCHOR_POINT.x,
-                REGION2_TOPLEFT_ANCHOR_POINT.y);
-        Point region2_pointB = new Point(
-                REGION2_TOPLEFT_ANCHOR_POINT.x + REGION_WIDTH,
-                REGION2_TOPLEFT_ANCHOR_POINT.y + REGION_HEIGHT);
-        Point region3_pointA = new Point(
-                REGION3_TOPLEFT_ANCHOR_POINT.x,
-                REGION3_TOPLEFT_ANCHOR_POINT.y);
-        Point region3_pointB = new Point(
-                REGION3_TOPLEFT_ANCHOR_POINT.x + REGION_WIDTH,
-                REGION3_TOPLEFT_ANCHOR_POINT.y + REGION_HEIGHT);
-
-        /*
-         * Working variables
-         */
-        Mat region1_Cb, region2_Cb, region3_Cb;
-        Mat YCrCb = new Mat();
-        Mat Cb = new Mat();
-        int avg1, avg2, avg3;
-
-        // Volatile since accessed by OpMode thread w/o synchronization
-        private volatile BarcodePosition position = BarcodePosition.Left;
-
-        @Override
-        public void init(Mat firstFrame)
-        {
-            region1_Cb = firstFrame.submat(new Rect(region1_pointA, region1_pointB));
-            region2_Cb = firstFrame.submat(new Rect(region2_pointA, region2_pointB));
-            region3_Cb = firstFrame.submat(new Rect(region3_pointA, region3_pointB));
-        }
-
-        @Override
-        public Mat processFrame(Mat input)
-        {
-            region1_Cb = input.submat(new Rect(region1_pointA, region1_pointB));
-            region2_Cb = input.submat(new Rect(region2_pointA, region2_pointB));
-            region3_Cb = input.submat(new Rect(region3_pointA, region3_pointB));
-
-            /*
-             * Compute the average pixel value of each submat region. We're
-             * taking the average of a single channel buffer, so the value
-             * we need is at index 0. We could have also taken the average
-             * pixel value of the 3-channel image, and referenced the value
-             * at index 2 here.
-             */
-
-            double[] avgs1 = Core.mean(region1_Cb).val;
-            double[] avgs2 = Core.mean(region2_Cb).val;
-            double[] avgs3 = Core.mean(region3_Cb).val;
-
-            //avgs1.
 
 
-            avg1 = (int) Core.mean(region1_Cb).val[0];
-            avg2 = (int) Core.mean(region2_Cb).val[0];
-            avg3 = (int) Core.mean(region3_Cb).val[0];
-
-            telemetry.addData(">", String.format("%f %f %f", avg1, avg2, avg3));
-            telemetry.update();
-
-            /*
-             * Find the max of the 3 averages
-             */
-            int maxOneTwo = Math.max(avg1, avg2);
-            int max = Math.max(maxOneTwo, avg3);
-
-            /*
-             * Now that we found the max, we actually need to go and
-             * figure out which sample region that value was from
-             */
-            if(max == avg1) // Was it from region 1?
-            {
-                position = BarcodePosition.Left; // Record our analysis
-            }
-            else if(max == avg2) // Was it from region 2?
-            {
-                position = BarcodePosition.Center; // Record our analysis
-            }
-            else if(max == avg3) // Was it from region 3?
-            {
-                position = BarcodePosition.Right; // Record our analysis
-            }
-
-            /*
-             * Render the 'input' buffer to the viewport. But note this is not
-             * simply rendering the raw camera feed, because we called functions
-             * to add some annotations to this buffer earlier up.
-             */
-            return input;
-        }
-
-        /*
-         * Call this from the OpMode thread to obtain the latest analysis
-         */
-        public BarcodePosition getAnalysis()
-        {
-            return position;
-        }
-    }
-
-    private TeamElementDeterminationPipeline.BarcodePosition findObject()
+    /*private TeamElementDetermination.BarcodePosition findObject()
     {
 
 
@@ -330,5 +185,5 @@ public class AutoBlueDuck extends LinearOpMode
         //detector.detectAndCompute();
 
         return TeamElementDeterminationPipeline.BarcodePosition.Unknown;
-    }
+    }*/
 }
