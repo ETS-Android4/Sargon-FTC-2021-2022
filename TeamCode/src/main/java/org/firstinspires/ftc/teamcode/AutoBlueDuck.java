@@ -80,81 +80,84 @@ public class AutoBlueDuck extends LinearOpMode
 
         int armTarget = TeleOp.ARM_HIGH;
         Vector2d shippingHubPos = new Vector2d((-2.5 * 12), (0.8 * 12));
-        double shippingHubHeading = Math.toRadians(45);
+        double shippingHubHeading = Math.toRadians(0);
         TeamElementDetermination.BarcodePosition position = determiner.result();
 
         if (position == TeamElementDetermination.BarcodePosition.Left)
         {
             armTarget = TeleOp.ARM_HIGH;
-            shippingHubPos = new Vector2d(FieldConstants.blueShippingHubPos - FieldConstants.armHighOffset,
-                    FieldConstants.blueShippingHubPos + FieldConstants.armHighOffset);
+            shippingHubPos = new Vector2d(FieldConstants.blueShippingHubX - FieldConstants.armHighOffset, FieldConstants.blueShippingHubY);
         }
         else if (position == TeamElementDetermination.BarcodePosition.Center)
         {
             armTarget = TeleOp.ARM_MEDIUM;
-            shippingHubPos = new Vector2d(FieldConstants.blueShippingHubPos - FieldConstants.armMedOffset,
-                    FieldConstants.blueShippingHubPos + FieldConstants.armMedOffset);
+            shippingHubPos = new Vector2d(FieldConstants.blueShippingHubX - FieldConstants.armMedOffset, FieldConstants.blueShippingHubY);
         }
         else if (position == TeamElementDetermination.BarcodePosition.Right)
         {
             armTarget = TeleOp.ARM_LOW;
-            shippingHubPos = new Vector2d(FieldConstants.blueShippingHubPos - FieldConstants.armLowOffset,
-                    FieldConstants.blueShippingHubPos + FieldConstants.armLowOffset);
-        }
-        else
-        {
-            telemetry.addData("!", "INVALID BARCODE");
-            telemetry.update();
+            shippingHubPos = new Vector2d(FieldConstants.blueShippingHubX - FieldConstants.armLowOffset, FieldConstants.blueShippingHubY);
         }
 
         final int armTargetFinal = armTarget;
 
 
-        TrajectorySequence seq = drive.trajectorySequenceBuilder(startPose)
-                .strafeTo(new Vector2d((-4.9 * 12), (4.9 * 12) )) // Blue duck carousel
-                .waitSeconds(2) // Wait for ducks to fall
+        TrajectorySequence seq1 = drive.trajectorySequenceBuilder(FieldConstants.blueDuckStartingPose)
+                .strafeTo(new Vector2d((-4.95 * 12), (4.9 * 12) )) // Blue duck carousel
+                .waitSeconds(4) // Wait for ducks to fall
                 .lineToLinearHeading(new Pose2d((-5 * 12), (2 * 12), 0)) // In line with shipping hub
-                .addDisplacementMarker(() ->
-                {
-                    // Start moving arm to target
-                    arm.setTargetPosition(armTargetFinal);
-                    arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    arm.setPower(0.5);
-                })
-                .strafeTo(new Vector2d(FieldConstants.blueShippingHubX - FieldConstants.armHighOffset, FieldConstants.blueShippingHubY)) // Approach shipping hub
-                .addDisplacementMarker(() ->
-                {
-                    dumper.setPosition(TeleOp.DUMPER_RELEASE);
-                })
-                .waitSeconds(2)
-                .addDisplacementMarker(() ->
-                {
-                    // Start moving arm to neutral
-                    arm.setTargetPosition(TeleOp.ARM_INTAKE);
-                    dumper.setPosition(TeleOp.DUMPER_OPEN);
-                    arm.setPower(0.5);
-                })
-                .strafeTo(new Vector2d((-5 * 12), (2 * 12))) // Return to scoring square
-                .strafeTo(new Vector2d((-5 * 12), (2.9 * 12)))
                 .build();
 
+        // Start moving arm to target
+
+        TrajectorySequence seq2 = drive.trajectorySequenceBuilder(new Pose2d((-5 * 12), (2 * 12), 0))
+                .strafeTo(shippingHubPos) // Approach shipping hub
+                .build();
+
+        // Release block
+
+        TrajectorySequence seq3 = drive.trajectorySequenceBuilder(new Pose2d(shippingHubPos, 0))
+                .strafeTo(new Vector2d((-5.5 * 12), (3 * 12))) // Return to scoring square
+                .build();
+
+        // Move arm to neutral
+        // Wait 4s
 
 
 
-        while(!isStopRequested())
-        {
-            sleep(50);
-        }
+
+        
 
 
-        carouselLeft.setPower(0.5);
+        carouselLeft.setPower(-0.5);
         carouselRight.setPower(0.5);
 
-
-        carouselRight.setPower(0.5);
         dumper.setPosition(TeleOp.DUMPER_HOLD);
 
-        drive.followTrajectorySequence(seq);
+        drive.followTrajectorySequence(seq1);
+
+        // Start moving arm to target
+        arm.setTargetPosition(armTargetFinal);
+        arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        arm.setPower(0.1);
+
+        sleep(2000);
+
+        drive.followTrajectorySequence(seq2);
+
+        // Release block
+        dumper.setPosition(TeleOp.DUMPER_RELEASE);
+        sleep(2000);
+
+        drive.followTrajectorySequence(seq3);
+
+        // Start moving arm to neutral
+        arm.setTargetPosition(TeleOp.ARM_INTAKE);
+        dumper.setPosition(TeleOp.DUMPER_OPEN);
+        arm.setPower(0.1);
+        intake.setPower(-0.1);
+
+        sleep(4000);
 
         carouselRight.setPower(0.0);
         dumper.setPosition(TeleOp.DUMPER_OPEN);

@@ -11,9 +11,9 @@ public class FieldConstants
     public static final double robotRadius = 8.375; // Length from center of robot to back
 
 
-    public static final double armHighOffset = 19;
-    public static final double armMedOffset = 24;
-    public static final double armLowOffset = 26;
+    public static final double armHighOffset = 18;
+    public static final double armMedOffset = 26;
+    public static final double armLowOffset = 27.5;
 
     public static final double armHighSquareOffset = Math.sqrt(0.5 * Math.pow(armHighOffset, 2));
     public static final double armMedSquareOffset = Math.sqrt(0.5 * Math.pow(armMedOffset, 2));

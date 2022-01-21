@@ -5,14 +5,22 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.opencv.core.Core;
+import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.features2d.SimpleBlobDetector;
+import org.opencv.features2d.SimpleBlobDetector_Params;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvPipeline;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class TeamElementDetermination
 {
@@ -59,11 +67,11 @@ public class TeamElementDetermination
         /*
          * The core values which define the location and size of the sample regions
          */
-        static final Point REGION1_TOPLEFT_ANCHOR_POINT = new Point(0,62);
-        static final Point REGION2_TOPLEFT_ANCHOR_POINT = new Point(112,62);
-        static final Point REGION3_TOPLEFT_ANCHOR_POINT = new Point(250,62);
-        static final int REGION_WIDTH = 100;
-        static final int REGION_HEIGHT = 114;
+        static final Point REGION1_TOPLEFT_ANCHOR_POINT = new Point(0,0);
+        static final Point REGION2_TOPLEFT_ANCHOR_POINT = new Point(320 / 3,0);
+        static final Point REGION3_TOPLEFT_ANCHOR_POINT = new Point((320 / 3) * 2,0);
+        static final int REGION_WIDTH = 320/3;
+        static final int REGION_HEIGHT = 240;
 
         /*
          * Points which actually define the sample region rectangles, derived from above values
@@ -112,12 +120,15 @@ public class TeamElementDetermination
         // Volatile since accessed by OpMode thread w/o synchronization
         private volatile BarcodePosition position = BarcodePosition.Left;
 
+        SimpleBlobDetector_Params params;
+        SimpleBlobDetector detector;
+
         @Override
         public void init(Mat firstFrame)
         {
-            region1 = firstFrame.submat(new Rect(region1_pointA, region1_pointB));
-            region2 = firstFrame.submat(new Rect(region2_pointA, region2_pointB));
-            region3 = firstFrame.submat(new Rect(region3_pointA, region3_pointB));
+            params = new SimpleBlobDetector_Params();
+            //params.set_minArea(5);
+            detector = SimpleBlobDetector.create(params);
 
             processFrame(firstFrame);
         }
@@ -128,6 +139,14 @@ public class TeamElementDetermination
             region1 = input.submat(new Rect(region1_pointA, region1_pointB));
             region2 = input.submat(new Rect(region2_pointA, region2_pointB));
             region3 = input.submat(new Rect(region3_pointA, region3_pointB));
+
+            MatOfKeyPoint keyPoints = new MatOfKeyPoint();
+
+            detector.detect(input, keyPoints);
+
+            List<KeyPoint> pointList = keyPoints.toList();
+
+            telemetry.addData(">", Arrays.toString(pointList.toArray()));
 
             /*
              * Compute the average pixel value of each submat region. We're

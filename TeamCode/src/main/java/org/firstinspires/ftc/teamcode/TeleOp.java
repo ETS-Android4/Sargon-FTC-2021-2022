@@ -133,9 +133,9 @@ public class TeleOp extends LinearOpMode {
     private int armTarget = 0;
     private DcMotorEx arm = null;
     public static int ARM_INTAKE = 0;
-    public static int ARM_HIGH = -550;
-    public static int ARM_MEDIUM = -750; //todo: find the real value
-    public static int ARM_LOW = -900;
+    public static int ARM_HIGH = -400;
+    public static int ARM_MEDIUM = -850;
+    public static int ARM_LOW = -920;
 
     private Servo dumper = null;
     public static double DUMPER_OPEN = 0.0;
@@ -267,7 +267,7 @@ public class TeleOp extends LinearOpMode {
             }
             else if (arm.getTargetPosition() == 0)
             {
-                arm.setPower(0.2);
+                arm.setPower(0.1);
             }
             else
             {
