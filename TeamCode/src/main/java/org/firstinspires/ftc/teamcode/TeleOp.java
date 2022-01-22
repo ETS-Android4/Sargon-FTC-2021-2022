@@ -279,10 +279,6 @@ public class TeleOp extends LinearOpMode {
                 //arm.setPower(0.1);
                 arm.setVelocity(400);
             }
-            else if (arm.getCurrentPosition() < -450)
-            {
-                arm.setVelocity(200);
-            }
             else
             {
                 //arm.setPower(0.5);
