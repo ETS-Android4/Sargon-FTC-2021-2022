@@ -230,17 +230,17 @@ public class TeleOp extends LinearOpMode {
             }
             else if (gamepad1.dpad_up)
             {
-                armTarget = -600;
+                armTarget = ARM_HIGH;
                 intake.setPower(0.0); // The dumping box can easily lift the intake
             }
             else if (gamepad1.dpad_right)
             {
-                armTarget = -900;
+                armTarget = ARM_LOW;
                 intake.setPower(0.0);
             }
 
             // Manual arm control
-            armTarget += -gamepad2.right_stick_y * 100;
+            armTarget += -gamepad2.right_stick_y * 10;
 
             // Reset zero point on arm
             if (gamepad2.a && arm.getMode() != DcMotor.RunMode.STOP_AND_RESET_ENCODER)
