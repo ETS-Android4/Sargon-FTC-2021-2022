@@ -261,7 +261,7 @@ public class TeleOp extends LinearOpMode {
                 dumper.setPosition(DUMPER_HOLD); // Hold block
             }
 
-            if (within(arm.getCurrentPosition(), 0, 80) && armTarget == 0)
+            if (within(arm.getCurrentPosition(), 0, 20) && armTarget == 0)
             {
                 arm.setPower(0.0); // Power is unneeded if it is going to neutral and near it
             }
