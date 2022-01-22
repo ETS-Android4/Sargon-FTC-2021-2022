@@ -138,12 +138,14 @@ public class TeleOp extends LinearOpMode {
 
     private int armTarget = 0;
     private DcMotorEx arm = null;
+    public static double ARM_MANUAL_MULTIPLIER = 6.0;
     public static int ARM_INTAKE = 0;
     public static int ARM_HIGH = -550;
     public static int ARM_MEDIUM = -850;
     public static int ARM_LOW = -920;
 
     private Servo dumper = null;
+    private boolean aPrev = false;
     public static double DUMPER_OPEN = 0.0;
     public static double DUMPER_HOLD = 0.12;
     public static double DUMPER_RELEASE = 0.3;
@@ -246,8 +248,8 @@ public class TeleOp extends LinearOpMode {
             }
 
             // Manual arm control
-            armTarget += -gamepad1.right_stick_y * 3;
-            armTarget += -gamepad2.right_stick_y * 10;
+            armTarget += -gamepad1.right_stick_y * ARM_MANUAL_MULTIPLIER;
+            armTarget += -gamepad2.right_stick_y * ARM_MANUAL_MULTIPLIER;
 
             // Reset zero point on arm
             if (gamepad2.a && arm.getMode() != DcMotor.RunMode.STOP_AND_RESET_ENCODER)
@@ -291,21 +293,21 @@ public class TeleOp extends LinearOpMode {
             {
                 if (armTarget != 0)
                 {
-                    dumper.setPosition(DUMPER_RELEASE); // Release block
-
-                    Timer timer = new Timer();
-                    timer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            dumper.setPosition(DUMPER_OPEN);
-                        }
-                    }, 1 * 1000);
+                    if (!aPrev)
+                    {
+                        dumper.setPosition(DUMPER_RELEASE); // Release block
+                    }
+                    else
+                    {
+                        dumper.setPosition(DUMPER_OPEN); // Release block
+                    }
                 }
                 else
                 {
                     dumper.setPosition(DUMPER_HOLD);
                 }
             }
+            aPrev = gamepad1.a;
 
             // Manual dumper control
             if (gamepad2.dpad_down)
