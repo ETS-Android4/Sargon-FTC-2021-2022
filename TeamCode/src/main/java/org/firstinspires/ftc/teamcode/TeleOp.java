@@ -246,7 +246,8 @@ public class TeleOp extends LinearOpMode {
             }
 
             // Manual arm control
-            armTarget += -gamepad2.right_stick_x * 3;
+            armTarget += -gamepad1.right_stick_y * 3;
+            armTarget += -gamepad2.right_stick_y * 10;
 
             // Reset zero point on arm
             if (gamepad2.a && arm.getMode() != DcMotor.RunMode.STOP_AND_RESET_ENCODER)
