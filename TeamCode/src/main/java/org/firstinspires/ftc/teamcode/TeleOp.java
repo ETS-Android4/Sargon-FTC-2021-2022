@@ -60,12 +60,18 @@ import java.util.TimerTask;
 
     // Gamepad 1 (Primary)
     // left stick: drive
+    // right stick y: capping servo (UNUSED)
     // shoulders: rotate
-    // d-pad: arm position
-    // y: release block
+    // d-pad: arm position:
+        // Up: high level
+        // Down: ready for intake
+        // Left: eject block with servo
+        // Right: low level
+    // a: release block
     // b: reverse drive controls
     // x: spin carousel
-    // left bumper:
+    // y: spin carousel reverse
+    // left bumper: activate intake
     // right bumper: eject stuck block from intake
 
     // Gamepad 2 (Emergency)
@@ -280,7 +286,7 @@ public class TeleOp extends LinearOpMode {
                 arm.setVelocity(800);
             }
 
-            if (gamepad1.y)
+            if (gamepad1.a)
             {
                 if (armTarget != 0)
                 {
@@ -347,7 +353,7 @@ public class TeleOp extends LinearOpMode {
             }
 
             // On x pressed
-            if (gamepad1.x && !xPrev)
+            if ((gamepad1.x || gamepad1.y) && !xPrev)
             {
                 carouselLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                 carouselRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -355,19 +361,20 @@ public class TeleOp extends LinearOpMode {
             }
 
             // On x held
-            if (gamepad1.x)
+            if (gamepad1.x || gamepad1.y)
             {
                 long currentTime = System.nanoTime();
                 double elapsed = currentTime - xPressTime;
                 telemetry.addLine("elapsed " + elapsed);
 
-                double power = Math.min(CAROUSEL_SPEED_CAP, Math.exp(elapsed/CAROUSEL_RAMP_UP_TIME) - 1);
+                double power = Math.min(CAROUSEL_SPEED_CAP, Math.exp(elapsed/CAROUSEL_RAMP_UP_TIME) - 1) *
+                        (gamepad1.y ? -1.0 : 1.0);
                 carouselLeft.setPower(power);
                 carouselRight.setPower(power);
             }
 
             // On x let go, brake
-            if (!gamepad1.x && xPrev)
+            if ((!gamepad1.x || !gamepad1.y) && xPrev)
             {
                 //carouselLeftZero = carouselLeft.getCurrentPosition();
                 //carouselLeft.setTargetPosition(carouselLeft.getCurrentPosition());
@@ -387,7 +394,7 @@ public class TeleOp extends LinearOpMode {
                 carouselRight.setVelocity(0);
             }*/
 
-            xPrev = gamepad1.x;
+            xPrev = gamepad1.x || gamepad1.y;
 
 
             //carouselLeft.setPower((gamepad1.x ? carouselSpeed : 0.0) - (gamepad1.a ? carouselSpeed : 0.0));
