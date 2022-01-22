@@ -261,17 +261,19 @@ public class TeleOp extends LinearOpMode {
                 dumper.setPosition(DUMPER_HOLD); // Hold block
             }
 
-            if (within(arm.getCurrentPosition(), 0, 20) && armTarget == 0)
+            if (within(arm.getCurrentPosition(), 0, 80) && armTarget == 0)
             {
-                arm.setPower(0.0); // Power is unneeded if it is going to neutral
+                arm.setPower(0.0); // Power is unneeded if it is going to neutral and near it
             }
             else if (arm.getTargetPosition() == 0)
             {
-                arm.setPower(0.1);
+                //arm.setPower(0.1);
+                arm.setVelocity(400);
             }
             else
             {
-                arm.setPower(0.5);
+                //arm.setPower(0.5);
+                arm.setVelocity(800);
             }
 
             if (gamepad1.y)

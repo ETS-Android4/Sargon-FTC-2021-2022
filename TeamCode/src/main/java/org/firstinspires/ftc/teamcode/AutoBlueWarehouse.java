@@ -71,11 +71,17 @@ public class AutoBlueWarehouse extends LinearOpMode
         intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
         intake.setDirection(DcMotor.Direction.REVERSE);
 
-        //arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
-        //arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
+        arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
         TeamElementDetermination determiner = new TeamElementDetermination(hardwareMap, telemetry);
+        determiner.result();
 
+        drive.setPoseEstimate(FieldConstants.blueWarehouseStartingPose);
+
+        waitForStart();
 
 
         Pose2d startPose = new Pose2d(1 * 12, (6 * 12) - 8.375, Math.toRadians(270));
