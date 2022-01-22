@@ -117,7 +117,7 @@ public class AutoBlueDuck extends LinearOpMode
         // Release block
 
         TrajectorySequence seq3 = drive.trajectorySequenceBuilder(new Pose2d(shippingHubPos, 0))
-                .strafeTo(new Vector2d((-5.5 * 12), (3 * 12))) // Return to scoring square
+                .strafeTo(new Vector2d((-6 * 12) + 8, (3 * 12))) // Return to scoring square
                 .build();
 
         // Move arm to neutral

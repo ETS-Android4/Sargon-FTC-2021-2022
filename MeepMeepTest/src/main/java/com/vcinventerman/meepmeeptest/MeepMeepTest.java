@@ -11,9 +11,9 @@ public class MeepMeepTest {
     public static final double robotRadius = 8.375; // Length from center of robot to back
 
 
-    public static final double armHighOffset = 19;
-    public static final double armMedOffset = 24;
-    public static final double armLowOffset = 26;
+    public static final double armHighOffset = 18;
+    public static final double armMedOffset = 26;
+    public static final double armLowOffset = 27.5;
 
     public static final double armHighSquareOffset = Math.sqrt(0.5 * Math.pow(armHighOffset, 2));
     public static final double armMedSquareOffset = Math.sqrt(0.5 * Math.pow(armMedOffset, 2));
@@ -75,10 +75,12 @@ public class MeepMeepTest {
     public static void main(String[] args) {
         MeepMeep meepMeep = new MeepMeep(800).setBackground(MeepMeep.Background.FIELD_FREIGHTFRENZY_ADI_DARK);
 
+        Vector2d shippingHubPos = new Vector2d(redShippingHubX - armMedOffset, redShippingHubY);
+
         RoadRunnerBotEntity myBot = new DefaultBotBuilder(meepMeep)
                 // Set bot constraints: maxVel, maxAccel, maxAngVel, maxAngAccel, track width
-                .setConstraints(60, 60, Math.toRadians(180), Math.toRadians(180), 15)
-                .setDimensions(13, 8.375 * 2)
+                .setConstraints(39.2629039053496918, 30, 4.358889102935791, Math.toRadians(180), 10.71)
+                .setDimensions(12, 17.875)
                 /*.followTrajectorySequence(drive ->
                         drive.trajectorySequenceBuilder(new Pose2d(1 * 12, (6 * 12) - 8.375, Math.toRadians(270)))
                                 .strafeTo(new Vector2d((-1 * 12) + 18.38477631, (2 * 12) + 18.38477631))
@@ -90,17 +92,24 @@ public class MeepMeepTest {
 
                 );*/
 
+                // AutoBlueDuck.java
+                /*
                 .followTrajectorySequence(drive ->
                         drive.trajectorySequenceBuilder(blueDuckStartingPose)
-                                .strafeTo(new Vector2d((-4.9 * 12), (4.9 * 12) )) // Blue duck carousel
-                                .waitSeconds(2) // Wait for ducks to fall
+                                .strafeTo(new Vector2d((-4.95 * 12), (4.9 * 12) )) // Blue duck carousel
+                                .waitSeconds(4) // Wait for ducks to fall
                                 .lineToLinearHeading(new Pose2d((-5 * 12), (2 * 12), 0)) // In line with shipping hub
-                                .strafeTo(new Vector2d(blueShippingHubX - armHighOffset, blueShippingHubY)) // Approach shipping hub
-                                .strafeTo(new Vector2d((-5 * 12), (2 * 12))) // Return to scoring square
-                                .strafeTo(new Vector2d((-5 * 12), (2.9 * 12)))
+                                .strafeTo(shippingHubPos) // Approach shipping hub
+                                .strafeTo(new Vector2d((-6 * 12) + 8, (3 * 12))) // Return to scoring square
+                */
 
-
-
+                .followTrajectorySequence(drive ->
+                                drive.trajectorySequenceBuilder(redDuckStartingPose)
+                                        .strafeTo(new Vector2d((-4.95 * 12), (-4.9 * 12) )) // Blue duck carousel
+                                        .waitSeconds(4) // Wait for ducks to fall
+                                        .lineToLinearHeading(new Pose2d((-5 * 12), (-2 * 12), 0)) // In line with shipping hub
+                                        .strafeTo(shippingHubPos) // Approach shipping hub
+                                        .strafeTo(new Vector2d((-6 * 12) + 8, -(3 * 12))) // Return to scoring square
 
 
                 .build()

@@ -133,7 +133,7 @@ public class TeleOp extends LinearOpMode {
     private int armTarget = 0;
     private DcMotorEx arm = null;
     public static int ARM_INTAKE = 0;
-    public static int ARM_HIGH = -400;
+    public static int ARM_HIGH = -550;
     public static int ARM_MEDIUM = -850;
     public static int ARM_LOW = -920;
 
@@ -261,7 +261,7 @@ public class TeleOp extends LinearOpMode {
                 dumper.setPosition(DUMPER_HOLD); // Hold block
             }
 
-            if (within(arm.getCurrentPosition(), 0, 80) && armTarget == 0)
+            if (within(arm.getCurrentPosition(), 0, 20) && armTarget == 0)
             {
                 arm.setPower(0.0); // Power is unneeded if it is going to neutral and near it
             }
@@ -269,6 +269,10 @@ public class TeleOp extends LinearOpMode {
             {
                 //arm.setPower(0.1);
                 arm.setVelocity(400);
+            }
+            else if (arm.getCurrentPosition() < -450)
+            {
+                arm.setVelocity(200);
             }
             else
             {
