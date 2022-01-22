@@ -38,7 +38,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
 import java.util.List;
 
 @Autonomous
-public class DetectionTest
+public class DetectionTest extends LinearOpMode
 {
     TeamElementDetermination determiner = null;
 
