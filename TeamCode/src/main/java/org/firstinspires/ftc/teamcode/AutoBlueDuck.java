@@ -72,7 +72,7 @@ public class AutoBlueDuck extends LinearOpMode
 
         drive.setPoseEstimate(FieldConstants.blueDuckStartingPose);
 
-        waitForStart();
+
 
 
 
@@ -116,14 +116,14 @@ public class AutoBlueDuck extends LinearOpMode
 
         // Release block
 
-        TrajectorySequence seq3 = drive.trajectorySequenceBuilder(new Pose2d(shippingHubPos, 0))
+        TrajectorySequence seq3 = drive.trajectorySequenceBuilder(new Pose2d(shippingHubPos, shippingHubHeading))
                 .strafeTo(new Vector2d((-6 * 12) + 8, (3 * 12))) // Return to scoring square
                 .build();
 
         // Move arm to neutral
         // Wait 4s
 
-
+        waitForStart();
 
 
         
@@ -139,7 +139,7 @@ public class AutoBlueDuck extends LinearOpMode
         // Start moving arm to target
         arm.setTargetPosition(armTargetFinal);
         arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        arm.setPower(0.1);
+        arm.setVelocity(400);
 
         sleep(2000);
 
@@ -152,14 +152,14 @@ public class AutoBlueDuck extends LinearOpMode
         // Start moving arm to neutral
         arm.setTargetPosition(TeleOp.ARM_INTAKE);
         dumper.setPosition(TeleOp.DUMPER_OPEN);
-        arm.setPower(0.1);
+        arm.setVelocity(400);
         intake.setPower(-0.1);
         sleep(4000); // Wait for arm to return
 
         drive.followTrajectorySequence(seq3); // Go to ending box, park completely
 
         carouselRight.setPower(0.0);
-        dumper.setPosition(TeleOp.DUMPER_OPEN);
+        carouselLeft.setPower(0.0);
 
 
 

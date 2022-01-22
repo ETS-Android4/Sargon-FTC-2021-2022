@@ -16,57 +16,21 @@ import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
-import org.firstinspires.ftc.teamcode.TeleOp;
 
 import java.util.List;
 
 @Autonomous
 public class AutoBlueWarehouse extends LinearOpMode
 {
-    enum BarcodePosition
-    {
-        Unknown,
-        Left,
-        Middle,
-        Right
-    }
-
-
-
-    private static final String TFOD_MODEL_ASSET = "FreightFrenzy_BCDM.tflite";
-    private static final String[] LABELS = {
-            "Ball",
-            "Cube",
-            "Duck",
-            "Marker",
-            "TeamFabric"
-    };
-
-    private static final String VUFORIA_KEY = "AQfwG73/////AAABmaET3hUmm0WIjCN9wIx3AKA6l22iwwwVNCUbgJkn4v5KLzvswWwlRaShGcgpS2jgvjX+aBry9XKAoM0JeE1yFK1hpyDD3+mR68nn4uT/NoAKQvTDPC2a6+3rN91dN5qyCwg0UWv3oslFUIjQIX9HZBuRjVdHYfS1LU/Ea93hQ0wxulW3Hij8gdqRstJSYTi9u+IiGyYzv560wYoH5wZP2rJxbB3Av/E6O1C08lYAjKgRPMqsl27Wy1CA+lKzJ0pVYjRA3Z4+9AaQFFzFPjTKHPxXG75lzYXj0eB/aA8K91fokCK16SJp5xNJqoccpgO1t3IO7B1CVonzAEz9juq+WBsGPRffzMAxanmczBJjgh7Y";
-    private VuforiaLocalizer vuforia;
-    private TFObjectDetector tfod;
-
-    private DcMotorEx carouselLeft = null;
-    private DcMotorEx carouselRight = null;
     private DcMotorEx intake = null;
     private Servo dumper = null;
     private DcMotorEx arm = null;
 
-
-    private void placeHeldObject()
-    {
-        //arm.setTargetPosition(-740);
-
-    }
+    TeamElementDetermination determiner = null;
 
     @Override
     public void runOpMode() throws InterruptedException {
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
-
-        carouselLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselLeft");
-        carouselLeft.setDirection(DcMotor.Direction.FORWARD);
-        carouselRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselRight");
-        carouselRight.setDirection(DcMotor.Direction.REVERSE);
 
         intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
         intake.setDirection(DcMotor.Direction.REVERSE);
@@ -76,33 +40,20 @@ public class AutoBlueWarehouse extends LinearOpMode
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
-        TeamElementDetermination determiner = new TeamElementDetermination(hardwareMap, telemetry);
+        determiner = new TeamElementDetermination(hardwareMap, telemetry);
         determiner.result();
 
         drive.setPoseEstimate(FieldConstants.blueWarehouseStartingPose);
 
-        waitForStart();
-
-
-        Pose2d startPose = new Pose2d(1 * 12, (6 * 12) - 8.375, Math.toRadians(270));
-
-        drive.setPoseEstimate(startPose);
-
-        //.addDisplacementMarker(() -> {})
-
-        waitForStart();
-
-        // switch on pos
-
         int armTarget = TeleOp.ARM_HIGH;
-        Vector2d shippingHubPos = new Vector2d((-2.5 * 12), (0.8 * 12));
-        double shippingHubHeading = Math.toRadians(45);
+        Vector2d shippingHubPos = FieldConstants.blueShippingHubPos;
+        double shippingHubHeading = Math.toRadians(225);
         TeamElementDetermination.BarcodePosition position = determiner.result();
 
         if (position == TeamElementDetermination.BarcodePosition.Left)
         {
             armTarget = TeleOp.ARM_HIGH;
-            shippingHubPos = new Vector2d(FieldConstants.blueShippingHubX + FieldConstants.armHighSquareOffset, FieldConstants.blueShippingHubY  + FieldConstants.armHighSquareOffset);
+            shippingHubPos = new Vector2d(FieldConstants.blueShippingHubX + FieldConstants.armHighSquareOffset, FieldConstants.blueShippingHubY + FieldConstants.armHighSquareOffset);
         }
         else if (position == TeamElementDetermination.BarcodePosition.Center)
         {
@@ -117,80 +68,50 @@ public class AutoBlueWarehouse extends LinearOpMode
 
         final int armTargetFinal = armTarget;
 
-        /*
-        TrajectorySequence seq = drive.trajectorySequenceBuilder(startPose)
-                .strafeTo(new Vector2d((1 * 12), (1 * 12) ))
-                .addDisplacementMarker(() ->
-                {
-                    // Start moving arm to target
-                    arm.setTargetPosition(armTarget);
-                    arm.setPower(0.5);
-                })
-                .lineToLinearHeading(new Pose2d(new Vector2d((0.2 * 12), (0.8 * 12)), Math.toRadians(135))) // Go to team shipping hub
-                .addDisplacementMarker(() ->
-                {
-                    dumper.setPosition(TeleOp.DUMPER_RELEASE);
-                })
-                .waitSeconds(2)
-                .addDisplacementMarker(() ->
-                {
-                    // Start moving arm to target
-                    arm.setTargetPosition(TeleOp.ARM_INTAKE);
-                    dumper.setPosition(TeleOp.DUMPER_OPEN);
-                    arm.setPower(0.5);
-                })
-                .lineToLinearHeading(new Pose2d(new Vector2d((1 * 12), (1 * 12) ), Math.toRadians(0)))
-                .lineToLinearHeading(new Pose2d(new Vector2d(1 * 12, (5.5 * 12) - 8.375), Math.toRadians(0))) // Go near wall
-                .strafeLeft((.5 * 12))
-                .forward(2.5 * 12)
+
+        // Extend arm
+        // Wait 2s
+
+        TrajectorySequence seq1 = drive.trajectorySequenceBuilder(FieldConstants.blueWarehouseStartingPose)
+                .lineToLinearHeading(new Pose2d(shippingHubPos, shippingHubHeading)) // In line with shipping hub
                 .build();
 
-         */
-
-
-        // Start moving arm to target
-
-        TrajectorySequence seq1 = drive.trajectorySequenceBuilder(startPose)
-                .lineToLinearHeading(new Pose2d(shippingHubPos, shippingHubHeading))
-                .build();
-
-        // Release box
+        // Place piece
+        // Wait 2s
+        // Return arm
         // Wait 2s
 
         TrajectorySequence seq2 = drive.trajectorySequenceBuilder(new Pose2d(shippingHubPos, shippingHubHeading))
-                .lineToLinearHeading(new Pose2d(new Vector2d(1 * 12, (5.5 * 12) - 8.375), Math.toRadians(0))) // Go near wall
-                .strafeLeft((.5 * 12))
+                .lineToLinearHeading(new Pose2d(FieldConstants.blueWarehouseStartingPoseX, FieldConstants.blueWarehouseStartingPoseY - 10, 0)) // In line with shipping hub
+                .strafeLeft(10)
                 .forward(2.5 * 12)
                 .build();
 
-
-
-        carouselLeft.setPower(0.5);
-        carouselRight.setPower(0.5);
-
-        //arm.setTargetPosition(-740);
-        //arm.setDirection(DcMotorSimple.Direction.REVERSE);
-        ///arm.setPower(-0.5);
-
-
+        waitForStart();
 
         dumper.setPosition(TeleOp.DUMPER_HOLD);
 
         // Start moving arm to target
         arm.setTargetPosition(armTargetFinal);
         arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        arm.setPower(0.1);
+        arm.setVelocity(400);
+        sleep(2000);
 
         drive.followTrajectorySequence(seq1);
 
         dumper.setPosition(TeleOp.DUMPER_RELEASE);
         sleep(2000);
 
-        drive.followTrajectorySequence(seq2); // Go to end box
-
+        // Start moving arm to neutral
+        arm.setTargetPosition(TeleOp.ARM_INTAKE);
         dumper.setPosition(TeleOp.DUMPER_OPEN);
-        sleep(2000);
+        arm.setVelocity(400);
+        intake.setPower(-0.1);
+        sleep(4000); // Wait for arm to return
 
+        drive.followTrajectorySequence(seq2);
 
+        intake.setPower(0.0);
+        dumper.setPosition(TeleOp.DUMPER_OPEN);
     }
 }

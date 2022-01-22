@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 @Config
 public class FieldConstants
 {
-    public static final double robotRadius = 8.375; // Length from center of robot to back
+    public static final double robotRadius = 17.875 / 2; // Length from center of robot to back
 
 
     public static final double armHighOffset = 18;

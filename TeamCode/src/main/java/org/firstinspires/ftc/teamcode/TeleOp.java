@@ -265,7 +265,7 @@ public class TeleOp extends LinearOpMode {
                 arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
 
-            if (!within(arm.getCurrentPosition(), armTarget, 50) && armTarget != 0)
+            if (!within(arm.getCurrentPosition(), armTarget, 100) && armTarget != 0)
             {
                 dumper.setPosition(DUMPER_HOLD); // Hold block
             }
@@ -285,23 +285,20 @@ public class TeleOp extends LinearOpMode {
                 arm.setVelocity(800);
             }
 
-            if (gamepad1.a)
+            if (armTarget != 0)
             {
-                if (armTarget != 0)
+                if (gamepad1.a && !aPrev)
                 {
-                    if (!aPrev)
-                    {
-                        dumper.setPosition(DUMPER_RELEASE); // Release block
-                    }
-                    else
-                    {
-                        dumper.setPosition(DUMPER_OPEN); // Release block
-                    }
+                    dumper.setPosition(DUMPER_RELEASE);
                 }
-                else
+                else if (!gamepad1.a && aPrev)
                 {
-                    dumper.setPosition(DUMPER_HOLD);
+                    dumper.setPosition(DUMPER_OPEN);
                 }
+            }
+            else
+            {
+                dumper.setPosition(DUMPER_HOLD);
             }
             aPrev = gamepad1.a;
 

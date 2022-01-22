@@ -75,7 +75,7 @@ public class MeepMeepTest {
     public static void main(String[] args) {
         MeepMeep meepMeep = new MeepMeep(800).setBackground(MeepMeep.Background.FIELD_FREIGHTFRENZY_ADI_DARK);
 
-        Vector2d shippingHubPos = new Vector2d(redShippingHubX - armMedOffset, redShippingHubY);
+        Vector2d shippingHubPos = new Vector2d(redShippingHubX + armHighSquareOffset, redShippingHubY - armHighSquareOffset);
 
         RoadRunnerBotEntity myBot = new DefaultBotBuilder(meepMeep)
                 // Set bot constraints: maxVel, maxAccel, maxAngVel, maxAngAccel, track width
@@ -103,6 +103,9 @@ public class MeepMeepTest {
                                 .strafeTo(new Vector2d((-6 * 12) + 8, (3 * 12))) // Return to scoring square
                 */
 
+
+                // AutoRedDuck.java
+                /*
                 .followTrajectorySequence(drive ->
                                 drive.trajectorySequenceBuilder(redDuckStartingPose)
                                         .strafeTo(new Vector2d((-4.95 * 12), (-4.9 * 12) )) // Blue duck carousel
@@ -110,7 +113,26 @@ public class MeepMeepTest {
                                         .lineToLinearHeading(new Pose2d((-5 * 12), (-2 * 12), 0)) // In line with shipping hub
                                         .strafeTo(shippingHubPos) // Approach shipping hub
                                         .strafeTo(new Vector2d((-6 * 12) + 8, -(3 * 12))) // Return to scoring square
+                */
 
+                // AutoBlueWarehouse.java
+                /*
+                .followTrajectorySequence(drive ->
+                                drive.trajectorySequenceBuilder(blueWarehouseStartingPose)
+                                        .lineToLinearHeading(new Pose2d(shippingHubPos, Math.toRadians(225))) // In line with shipping hub
+                                        .lineToLinearHeading(new Pose2d(blueWarehouseStartingPoseX, blueWarehouseStartingPoseY - 10, 0)) // In line with shipping hub
+                                        .strafeLeft(10)
+                                        .forward(2.5 * 12)
+                */
+
+                // AutoBlueWarehouse.java
+
+                .followTrajectorySequence(drive ->
+                                drive.trajectorySequenceBuilder(redWarehouseStartingPose)
+                                        .lineToLinearHeading(new Pose2d(shippingHubPos, Math.toRadians(135))) // In line with shipping hub
+                                        .lineToLinearHeading(new Pose2d(redWarehouseStartingPoseX, redWarehouseStartingPoseY + 10, 0))
+                                        .strafeRight(10)
+                                        .forward(2.5 * 12)
 
                 .build()
                 );
