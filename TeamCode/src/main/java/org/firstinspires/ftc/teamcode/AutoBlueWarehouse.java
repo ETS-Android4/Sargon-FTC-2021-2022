@@ -19,7 +19,7 @@ import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 import java.util.List;
 
-@Autonomous
+@Autonomous(preselectTeleOp="TeleOpBlue")
 public class AutoBlueWarehouse extends LinearOpMode
 {
     private DcMotorEx intake = null;

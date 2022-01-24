@@ -37,8 +37,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
 
 import java.util.List;
 
-@Autonomous
-@Config
+@Autonomous(preselectTeleOp="TeleOpBlue")
 public class AutoBlueDuck extends LinearOpMode
 {
     private DcMotorEx carouselLeft = null;

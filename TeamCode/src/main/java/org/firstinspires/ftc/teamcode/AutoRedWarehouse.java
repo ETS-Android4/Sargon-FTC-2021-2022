@@ -19,7 +19,7 @@ import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 import java.util.List;
 
-@Autonomous
+@Autonomous(preselectTeleOp="TeleOpRed")
 public class AutoRedWarehouse extends LinearOpMode
 {
     private DcMotorEx intake = null;
@@ -48,7 +48,7 @@ public class AutoRedWarehouse extends LinearOpMode
 
         int armTarget = TeleOp.ARM_HIGH;
         Vector2d shippingHubPos = FieldConstants.redShippingHubPos;
-        double shippingHubHeading = Math.toRadians(0);
+        double shippingHubHeading = Math.toRadians(135);
         TeamElementDetermination.BarcodePosition position = determiner.result();
 
         if (position == TeamElementDetermination.BarcodePosition.Left)
@@ -67,7 +67,7 @@ public class AutoRedWarehouse extends LinearOpMode
             shippingHubPos = new Vector2d(FieldConstants.redShippingHubX + FieldConstants.armLowSquareOffset, FieldConstants.redShippingHubY - FieldConstants.armHighSquareOffset);
         }
 
-        final int armTargetFinal = armTarget;
+        final int armTargetFinal = TeleOp.ARM_HIGH;
 
         // Extend arm
         // Wait 2s
@@ -82,7 +82,7 @@ public class AutoRedWarehouse extends LinearOpMode
         // Wait 2s
 
         TrajectorySequence seq2 = drive.trajectorySequenceBuilder(new Pose2d(shippingHubPos, shippingHubHeading))
-                .lineToLinearHeading(new Pose2d(FieldConstants.blueWarehouseStartingPoseX, FieldConstants.blueWarehouseStartingPoseY + 10, 0)) // In line with shipping hub
+                .lineToLinearHeading(new Pose2d(FieldConstants.redWarehouseStartingPoseX, FieldConstants.redWarehouseStartingPoseY + 10, 0)) // In line with shipping hub
                 .strafeRight(10)
                 .forward(2.5 * 12)
                 .build();

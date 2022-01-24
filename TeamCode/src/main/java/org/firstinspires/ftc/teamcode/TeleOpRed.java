@@ -105,9 +105,9 @@ import java.util.TimerTask;
     */
 
     // DriveSimple2
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="TeleOp", group="Linear OpMode")
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="TeleOpRed", group="Linear OpMode")
 @com.acmerobotics.dashboard.config.Config
-public class TeleOp extends LinearOpMode {
+public class TeleOpRed extends LinearOpMode {
     ElapsedTime runtime = new ElapsedTime();
 
     private DcMotorEx driveFrontLeft = null;

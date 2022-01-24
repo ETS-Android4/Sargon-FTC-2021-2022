@@ -19,7 +19,7 @@ import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 import java.util.List;
 
-@Autonomous
+@Autonomous(preselectTeleOp="TeleOpRed")
 public class AutoRedDuck extends LinearOpMode
 {
     private DcMotorEx carouselLeft = null;
@@ -80,14 +80,14 @@ public class AutoRedDuck extends LinearOpMode
 
 
         TrajectorySequence seq1 = drive.trajectorySequenceBuilder(FieldConstants.redDuckStartingPose)
-                .strafeTo(new Vector2d((-4.95 * 12), (-4.9 * 12) )) // red duck carousel
+                .strafeTo(new Vector2d((-5 * 12), (-4.9 * 12) )) // red duck carousel
                 .waitSeconds(4) // Wait for ducks to fall
                 .lineToLinearHeading(new Pose2d((-5 * 12), (-2 * 12), 0)) // In line with shipping hub
                 .build();
 
         // Start moving arm to target
 
-        TrajectorySequence seq2 = drive.trajectorySequenceBuilder(new Pose2d((-5 * 12), (2 * 12), 0))
+        TrajectorySequence seq2 = drive.trajectorySequenceBuilder(new Pose2d((-5 * 12), (-2 * 12), 0))
                 .strafeTo(shippingHubPos) // Approach shipping hub
                 .build();
 
@@ -106,8 +106,8 @@ public class AutoRedDuck extends LinearOpMode
 
 
 
-        carouselLeft.setPower(-0.5);
-        carouselRight.setPower(0.5);
+        carouselLeft.setPower(0.5);
+        carouselRight.setPower(-0.5);
 
         dumper.setPosition(TeleOp.DUMPER_HOLD);
 
