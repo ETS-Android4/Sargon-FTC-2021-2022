@@ -3,12 +3,30 @@ package org.firstinspires.ftc.teamcode;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
-import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 
 @Config
-public class FieldConstants
+public final class Constants
 {
     public static final double robotRadius = 17.875 / 2; // Length from center of robot to back
+
+    public static double ARM_MANUAL_MULTIPLIER = 6.0;
+    public static int ARM_INTAKE = 0;
+    public static int ARM_HIGH = -610;
+    public static int ARM_MEDIUM = -850;
+    public static int ARM_LOW = -920;
+
+    public static double DUMPER_OPEN = 0.0;
+    public static double DUMPER_HOLD = 0.12;
+    public static double DUMPER_RELEASE = 0.3;
+
+    public static double INTAKE_POWER = 0.5;
+    public static double INTAKE_POWER_EJECT = -0.5;
+
+    public static double CAROUSEL_STOP_SPEED = 0.25;
+    public static double CAROUSEL_RAMP_UP_TIME = 500000000.0;
+    public static double CAROUSEL_SPEED_CAP = 0.75;
+
+    public static double TRIGGER_POWER_SCALAR = 0.5;
 
 
     public static final double armHighOffset = 18;
