@@ -29,6 +29,7 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -109,12 +110,40 @@ import java.util.TimerTask;
     // DriveSimple2
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="TeleOpBlue", group="Linear OpMode")
 @com.acmerobotics.dashboard.config.Config
-public class TeleOpBlue extends LinearOpMode {
+public class TeleOpBlue extends TeleOpBase {
 
 
     @Override
     public void runOpMode() {
+        initMotors();
+
+        p1 = new GamepadEx(gamepad1);
+        p2 = new GamepadEx(gamepad2);
+
+        //gamepad1.setJoystickDeadzone(0.1);
 
 
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        waitForStart();
+
+        if (isStopRequested()) return;
+
+        while (opModeIsActive() && !isStopRequested())
+        {
+            runArm();
+
+            runDumper();
+
+            runDriveSmart();
+
+            runCarousel();
+
+            runIntake();
+
+            dumpStats(true);
+
+        }
     }
 }
