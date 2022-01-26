@@ -385,7 +385,7 @@ public abstract class TeleOpBase extends LinearOpMode {
                         )
                 );
 
-                if (gamepad1.b) {
+                if (gamepad2.b) {
                     // If the A button is pressed on gamepad1, we generate a splineTo()
                     // trajectory on the fly and follow it
                     // We switch the state to AUTOMATIC_CONTROL
@@ -397,7 +397,7 @@ public abstract class TeleOpBase extends LinearOpMode {
                     drive.followTrajectoryAsync(traj1);
 
                     currentMode = Mode.AUTOMATIC_CONTROL;
-                } else if (gamepad1.x) {
+                } else if (gamepad2.x) {
                     // If the B button is pressed on gamepad1, we generate a lineTo()
                     // trajectory on the fly and follow it
                     // We switch the state to AUTOMATIC_CONTROL
@@ -409,7 +409,7 @@ public abstract class TeleOpBase extends LinearOpMode {
                     drive.followTrajectoryAsync(traj1);
 
                     currentMode = Mode.AUTOMATIC_CONTROL;
-                } else if (gamepad1.y) {
+                } else if (gamepad2.y) {
                     // If Y is pressed, we turn the bot to the specified angle to reach
                     // targetAngle (by default, 45 degrees)
 
@@ -420,7 +420,7 @@ public abstract class TeleOpBase extends LinearOpMode {
                 break;
             case AUTOMATIC_CONTROL:
                 // If x is pressed, we break out of the automatic following
-                if (gamepad1.x) {
+                if (gamepad2.x) {
                     drive.cancelFollowing();
                     currentMode = Mode.DRIVER_CONTROL;
                 }
@@ -468,10 +468,11 @@ public abstract class TeleOpBase extends LinearOpMode {
 
     void dumpStats(boolean update)
     {
-        telemetry.addLine("armPos" + arm.getCurrentPosition());
-        telemetry.addLine("armTarget " + armTarget);
-        telemetry.addLine("armPower " + arm.getPower());
-        telemetry.addLine("intakeSpeed " + intake.getPower());
+        telemetry.addData("armPos", arm.getCurrentPosition());
+        telemetry.addData("armTarget ", armTarget);
+        telemetry.addData("armPower ", arm.getPower());
+        telemetry.addData("intakeSpeed ", intake.getPower());
+        telemetry.addData("Velocity ", drive.getWheelVelocities().get(3));
 
         if (update)
         {
