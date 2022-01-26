@@ -21,6 +21,11 @@ android {
     androidResources {
         noCompress 'tflite'
     }
+    packagingOptions {
+        jniLibs {
+            pickFirsts += ['**/*.so']
+        }
+    }
     dexOptions {
         javaMaxHeapSize "2g"
     }
