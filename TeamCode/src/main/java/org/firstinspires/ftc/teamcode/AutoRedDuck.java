@@ -48,7 +48,7 @@ public class AutoRedDuck extends LinearOpMode
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
-        determiner = new TeamElementDetermination(hardwareMap, telemetry);
+        determiner = new TeamElementDetermination(hardwareMap, telemetry, Alliance.Red);
         determiner.result();
 
         drive.setPoseEstimate(Constants.redDuckStartingPose);
@@ -119,7 +119,7 @@ public class AutoRedDuck extends LinearOpMode
         arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         arm.setVelocity(400);
 
-        sleep(2000);
+        sleep(4000);
 
         drive.followTrajectorySequence(seq2);
 
@@ -138,5 +138,7 @@ public class AutoRedDuck extends LinearOpMode
 
         carouselRight.setPower(0.0);
         carouselLeft.setPower(0.0);
+
+        Constants.setRobotCurrentPose(drive.getPoseEstimate());
     }
 }

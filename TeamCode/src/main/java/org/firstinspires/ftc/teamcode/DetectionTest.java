@@ -13,7 +13,20 @@ public class DetectionTest extends LinearOpMode
     @Override
     public void runOpMode() throws InterruptedException
     {
-        determiner = new TeamElementDetermination(hardwareMap, telemetry);
-        determiner.result();
+        determiner = new TeamElementDetermination(hardwareMap, telemetry, Constants.Alliance.Blue);
+
+
+        waitForStart();
+
+        while (!isStopRequested())
+        {
+            telemetry.addData(">", determiner.result().toString());
+            telemetry.update();
+
+            sleep(100);
+        }
+
+
+
     }
 }

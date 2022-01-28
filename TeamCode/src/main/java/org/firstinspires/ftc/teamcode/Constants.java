@@ -7,17 +7,50 @@ import com.acmerobotics.roadrunner.geometry.Vector2d;
 @Config
 public final class Constants
 {
+
+    public static TeamElementDetermination.BarcodePosition autoHeightDefault = TeamElementDetermination.BarcodePosition.Center;
+    public static double autoShippingOffset = 2.0;
+
+    public static boolean within(double val, double target, double tolerance)
+    {
+        return Math.abs(val - target) <= tolerance;
+    }
+    public static boolean within(long val, long target, long tolerance)
+    {
+        return Math.abs(val - target) <= tolerance;
+    }
+
+    enum Alliance
+    {
+        Red,
+        Blue
+    }
+
     public static final double robotRadius = 17.875 / 2; // Length from center of robot to back
 
     public static double ARM_MANUAL_MULTIPLIER = 6.0;
     public static int ARM_INTAKE = 0;
-    public static int ARM_HIGH = -610;
-    public static int ARM_MEDIUM = -850;
-    public static int ARM_LOW = -920;
+    public static int ARM_HIGH = -590;
+    public static int ARM_MEDIUM = -690;
+    public static int ARM_LOW = -830;
+
+    enum ArmState
+    {
+        AtZero,
+        ToZero,
+        ToLevel,
+        NearLevel,
+        AtLevel,
+    }
+
+    public static double ARM_VELOCITY_HOLD = 100;
+    public static double ARM_VELOCITY_NEAR = 500;
+    public static double ARM_VELOCITY_FAR = 1600;
+
 
     public static double DUMPER_OPEN = 0.0;
-    public static double DUMPER_HOLD = 0.12;
-    public static double DUMPER_RELEASE = 0.3;
+    public static double DUMPER_HOLD = 0.15;
+    public static double DUMPER_RELEASE = 0.35;
 
     public static double INTAKE_POWER = 0.5;
     public static double INTAKE_POWER_EJECT = -0.5;
@@ -29,9 +62,9 @@ public final class Constants
     public static double TRIGGER_POWER_SCALAR = 0.5;
 
 
-    public static final double armHighOffset = 18;
-    public static final double armMedOffset = 26;
-    public static final double armLowOffset = 27.5;
+    public static final double armHighOffset = 30 - robotRadius;
+    public static final double armMedOffset = 37 - robotRadius;
+    public static final double armLowOffset = 38 - robotRadius;
 
     public static final double armHighSquareOffset = Math.sqrt(0.5 * Math.pow(armHighOffset, 2));
     public static final double armMedSquareOffset = Math.sqrt(0.5 * Math.pow(armMedOffset, 2));
@@ -84,4 +117,15 @@ public final class Constants
     public static final double blueDuckSpinnerX = -6 * 12;
     public static final double blueDuckSpinnerY = 6 * 12;
     public static final Vector2d blueDuckSpinnerPos = new Vector2d(blueDuckSpinnerX, blueDuckSpinnerY);
+
+
+    // Used to pass pose from auto to teleop
+    public static Pose2d robotCurrentPose = blueDuckStartingPose;
+    public static boolean poseSet = false;
+
+    public static void setRobotCurrentPose(Pose2d pose)
+    {
+        robotCurrentPose = pose;
+        poseSet = true;
+    }
 }

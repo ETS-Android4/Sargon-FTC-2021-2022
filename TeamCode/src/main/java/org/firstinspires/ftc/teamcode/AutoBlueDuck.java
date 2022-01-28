@@ -4,9 +4,14 @@ import static org.firstinspires.ftc.teamcode.Constants.ARM_HIGH;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_INTAKE;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_LOW;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_MEDIUM;
+import static org.firstinspires.ftc.teamcode.Constants.ARM_VELOCITY_FAR;
+import static org.firstinspires.ftc.teamcode.Constants.ARM_VELOCITY_HOLD;
+import static org.firstinspires.ftc.teamcode.Constants.ARM_VELOCITY_NEAR;
 import static org.firstinspires.ftc.teamcode.Constants.DUMPER_HOLD;
 import static org.firstinspires.ftc.teamcode.Constants.DUMPER_OPEN;
 import static org.firstinspires.ftc.teamcode.Constants.DUMPER_RELEASE;
+import static org.firstinspires.ftc.teamcode.Constants.autoShippingOffset;
+import static org.firstinspires.ftc.teamcode.Constants.within;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
@@ -20,6 +25,9 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.Constants.*;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 @Autonomous(preselectTeleOp="TeleOpBlue")
 public class AutoBlueDuck extends LinearOpMode
 {
@@ -28,9 +36,60 @@ public class AutoBlueDuck extends LinearOpMode
     private DcMotorEx intake = null;
     private Servo dumper = null;
     private DcMotorEx arm = null;
+    private int armTarget = 0;
+    private ArmState armState = ArmState.AtZero;
+    private boolean armResetting = false;
+    private Timer timer = new Timer();
 
     TeamElementDetermination determiner = null;
 
+    public void updateArmState()
+    {
+        if (armTarget == 0 && within(arm.getCurrentPosition(), armTarget, 50))
+        {
+            armState = ArmState.AtZero;
+            if (!armResetting) {
+                armResetting = true;
+                arm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                arm.setPower(0.0);
+
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        if (armResetting) {
+                            if (arm.getMode() != DcMotor.RunMode.STOP_AND_RESET_ENCODER) {
+                                arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                            }
+                            armResetting = false;
+                        }
+                    }
+                }, 500);
+            }
+        }
+        else if (armTarget == 0 && within(arm.getCurrentPosition(), armTarget, 200))
+        {
+            arm.setVelocity(ARM_VELOCITY_HOLD);
+        }
+        else if (armTarget == 0)
+        {
+            arm.setVelocity(ARM_VELOCITY_FAR);
+        }
+
+        if (armTarget != 0 && within(arm.getCurrentPosition(), armTarget, 150))
+        {
+            armState = ArmState.NearLevel;
+            arm.setVelocity(ARM_VELOCITY_NEAR);
+        }
+        else if (armTarget != 0 && within(arm.getCurrentPosition(), armTarget, 50))
+        {
+            armState = ArmState.AtLevel;
+            arm.setVelocity(ARM_VELOCITY_HOLD);
+        }
+        else if (armTarget != 0)
+        {
+            arm.setVelocity(ARM_VELOCITY_FAR);
+        }
+    }
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -49,7 +108,7 @@ public class AutoBlueDuck extends LinearOpMode
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
-        determiner = new TeamElementDetermination(hardwareMap, telemetry);
+        determiner = new TeamElementDetermination(hardwareMap, telemetry, Alliance.Blue);
         determiner.result();
 
         drive.setPoseEstimate(Constants.blueDuckStartingPose);
@@ -60,25 +119,27 @@ public class AutoBlueDuck extends LinearOpMode
 
 
 
-        int armTarget = ARM_HIGH;
+        armTarget = ARM_HIGH;
         Vector2d shippingHubPos = new Vector2d((-2.5 * 12), (0.8 * 12));
         double shippingHubHeading = Math.toRadians(0);
         TeamElementDetermination.BarcodePosition position = determiner.result();
 
+        position = Constants.autoHeightDefault;
+
         if (position == TeamElementDetermination.BarcodePosition.Left)
         {
             armTarget = ARM_HIGH;
-            shippingHubPos = new Vector2d(Constants.blueShippingHubX - Constants.armHighOffset, Constants.blueShippingHubY);
+            shippingHubPos = new Vector2d(Constants.blueShippingHubX - Constants.armHighOffset - autoShippingOffset, Constants.blueShippingHubY);
         }
         else if (position == TeamElementDetermination.BarcodePosition.Center)
         {
             armTarget = ARM_MEDIUM;
-            shippingHubPos = new Vector2d(Constants.blueShippingHubX - Constants.armMedOffset, Constants.blueShippingHubY);
+            shippingHubPos = new Vector2d(Constants.blueShippingHubX - Constants.armMedOffset - autoShippingOffset, Constants.blueShippingHubY);
         }
         else if (position == TeamElementDetermination.BarcodePosition.Right)
         {
             armTarget = ARM_LOW;
-            shippingHubPos = new Vector2d(Constants.blueShippingHubX - Constants.armLowOffset, Constants.blueShippingHubY);
+            shippingHubPos = new Vector2d(Constants.blueShippingHubX - Constants.armLowOffset - autoShippingOffset, Constants.blueShippingHubY);
         }
 
         final int armTargetFinal = armTarget;
@@ -93,7 +154,7 @@ public class AutoBlueDuck extends LinearOpMode
         // Start moving arm to target
 
         TrajectorySequence seq2 = drive.trajectorySequenceBuilder(new Pose2d((-5 * 12), (2 * 12), 0))
-                .strafeTo(shippingHubPos) // Approach shipping hub
+                .lineToLinearHeading(new Pose2d(shippingHubPos, shippingHubHeading)) // Approach shipping hub
                 .build();
 
         // Release block
@@ -116,16 +177,45 @@ public class AutoBlueDuck extends LinearOpMode
 
         dumper.setPosition(DUMPER_HOLD);
 
-        drive.followTrajectorySequence(seq1);
+        drive.followTrajectorySequenceAsync(seq1);
+
+        while (true)
+        {
+            drive.update();
+
+            updateArmState();
+
+            //todo: catch hitting duck wheel
+            if (!drive.isBusy())
+            {
+                break;
+            }
+        }
 
         // Start moving arm to target
         arm.setTargetPosition(armTargetFinal);
         arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         arm.setVelocity(400);
+        armState = ArmState.ToLevel;
 
-        sleep(2000);
+        sleep(5000);
 
-        drive.followTrajectorySequence(seq2);
+        drive.followTrajectorySequenceAsync(seq2);
+
+        while (true)
+        {
+            drive.update();
+
+            updateArmState();
+
+            if (!drive.isBusy())
+            {
+                break;
+            }
+        }
+
+
+
 
         // Release block
         dumper.setPosition(DUMPER_RELEASE);
@@ -136,14 +226,30 @@ public class AutoBlueDuck extends LinearOpMode
         dumper.setPosition(DUMPER_OPEN);
         arm.setVelocity(400);
         intake.setPower(-0.1);
+        armState = ArmState.ToZero;
         sleep(4000); // Wait for arm to return
 
-        drive.followTrajectorySequence(seq3); // Go to ending box, park completely
+        drive.followTrajectorySequenceAsync(seq3); // Go to ending box, park completely
+
+        while (true)
+        {
+            drive.update();
+
+            updateArmState();
+
+            if (!drive.isBusy())
+            {
+                break;
+            }
+        }
+
+
+
 
         carouselRight.setPower(0.0);
         carouselLeft.setPower(0.0);
 
 
-
+        Constants.setRobotCurrentPose(drive.getPoseEstimate());
     }
 }

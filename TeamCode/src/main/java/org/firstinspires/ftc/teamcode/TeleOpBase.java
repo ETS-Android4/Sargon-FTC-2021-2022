@@ -32,6 +32,9 @@ package org.firstinspires.ftc.teamcode;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_HIGH;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_LOW;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_MANUAL_MULTIPLIER;
+import static org.firstinspires.ftc.teamcode.Constants.ARM_VELOCITY_FAR;
+import static org.firstinspires.ftc.teamcode.Constants.ARM_VELOCITY_HOLD;
+import static org.firstinspires.ftc.teamcode.Constants.ARM_VELOCITY_NEAR;
 import static org.firstinspires.ftc.teamcode.Constants.CAROUSEL_SPEED_CAP;
 import static org.firstinspires.ftc.teamcode.Constants.DUMPER_HOLD;
 import static org.firstinspires.ftc.teamcode.Constants.DUMPER_OPEN;
@@ -39,6 +42,7 @@ import static org.firstinspires.ftc.teamcode.Constants.DUMPER_RELEASE;
 import static org.firstinspires.ftc.teamcode.Constants.INTAKE_POWER;
 import static org.firstinspires.ftc.teamcode.Constants.INTAKE_POWER_EJECT;
 import static org.firstinspires.ftc.teamcode.Constants.TRIGGER_POWER_SCALAR;
+import static org.firstinspires.ftc.teamcode.Constants.within;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
@@ -53,6 +57,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -71,17 +76,17 @@ import java.util.TimerTask;
 
     // Gamepad 1 (Primary)
     // left stick: drive
-    // right stick y: capping servo (UNUSED)
+    // right stick y: arm target height
     // shoulders: rotate
     // d-pad: arm position:
-        // Up: high level
-        // Down: ready for intake
-        // Left: eject block with servo
-        // Right: low level
-    // a: release block
-    // b: reverse drive controls
-    // x: spin carousel
-    // y: spin carousel reverse
+        // Up: spin carousel
+        // Down: Ready for intake
+        // Left: None
+        // Right: High level
+    // a: dumper hold
+    // b: dumper release
+    // x: dumper open for intake
+    // y: reverse drive controls
     // left bumper: activate intake
     // right bumper: eject stuck block from intake
 
@@ -103,7 +108,7 @@ import java.util.TimerTask;
     Expansion Hub
         0: driveBackRight
         1: driveFrontRight
-        2: carouselRight
+        2: None
         3: arm
 
     I2C
@@ -120,25 +125,27 @@ import java.util.TimerTask;
 @com.acmerobotics.dashboard.config.Config
 public abstract class TeleOpBase extends LinearOpMode {
     ElapsedTime runtime = new ElapsedTime();
+    Timer timer = new Timer();
 
-    //private MotorEx driveFrontLeft = null;
-    //private MotorEx driveBackLeft = null;
-    //private MotorEx driveFrontRight = null;
-    //private MotorEx driveBackRight = null;
     private SampleMecanumDriveCancelable drive;
     private boolean useReversed = true;
 
     // Used to spin duck discs
     private DcMotorEx carouselLeft = null;
-    private DcMotorEx carouselRight = null;
 
     private DcMotorEx intake = null;
 
     private int armTarget = 0;
+    private ArmState armState = ArmState.AtZero;
     private DcMotorEx arm = null;
+    private boolean armResetting = false;
 
 
     private Servo dumper = null;
+
+    Pose2d targetDuckHub = null;
+
+    Alliance alliance = Alliance.Blue;
 
 
     // Define 2 states, drive control or automatic control
@@ -160,197 +167,189 @@ public abstract class TeleOpBase extends LinearOpMode {
     // The angle we want to align to when we press Y
     double targetAngle = Math.toRadians(45);
 
-
-    Gamepad g1Prev;
-    Gamepad g2Prev;
-
     GamepadEx p1;
     GamepadEx p2;
 
 
-
-    public static boolean within(double val, double target, double tolerance)
-    {
-        return Math.abs(val - target) <= tolerance;
-    }
-    public static boolean within(long val, long target, long tolerance)
-    {
-        return Math.abs(val - target) <= tolerance;
-    }
-
-    /*public void gamepadMove(double joyX, double joyY, double triggerL, double triggerR) {
-        // Mecanum Drive
-        double r = Math.hypot(joyX, joyY);
-        double robotAngle = Math.atan2(joyY, joyX);
-        double yaw = triggerR - triggerL;
-
-        double drive = joyY;
-        double strafe = -joyX;
-        double twist = triggerL - triggerR;
-
-        double frontLeftPower = drive + strafe + twist;
-        double frontRightPower = -drive + strafe + twist;
-        double backLeftPower = drive - strafe + twist;
-        double backRightPower = -drive - strafe + twist;
-
-        driveFrontLeft.motor.setPower(frontLeftPower);
-        driveFrontRight.motor.setPower(frontRightPower);
-        driveBackLeft.motor.setPower(backLeftPower);
-        driveBackRight.motor.setPower(backRightPower);
-    }*/
-
     public void initMotors()
     {
-        /*driveFrontLeft = new MotorEx(hardwareMap, "driveFrontLeft");
-        driveFrontLeft.setInverted(false);
-        driveBackLeft = new MotorEx(hardwareMap, "driveBackLeft");
-        driveBackLeft.setInverted(false);
-        driveFrontRight = new MotorEx(hardwareMap, "driveFrontRight");
-        driveFrontRight.setInverted(false);
-        driveBackRight = new MotorEx(hardwareMap, "driveBackRight");
-        driveBackRight.setInverted(false);*/
-
-        //MecanumDrive mecanum = new MecanumDrive(driveFrontLeft, driveFrontRight, driveBackLeft, driveBackRight);
-
         drive = new SampleMecanumDriveCancelable(hardwareMap);
-        drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        drive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        drive.setPoseEstimate(Constants.blueDuckStartingPose);
+        if (Constants.poseSet)
+        {
+            drive.setPoseEstimate(Constants.robotCurrentPose);
+        }
+        else // If pose was not specifically set by auto, just try to get the right side of the field
+        {
+            drive.setPoseEstimate(alliance == Alliance.Blue ? Constants.blueDuckStartingPose :
+                    Constants.redDuckStartingPose);
+        }
 
         carouselLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselLeft");
         carouselLeft.setDirection(DcMotor.Direction.FORWARD);
         carouselLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        carouselRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselRight");
-        carouselRight.setDirection(DcMotor.Direction.REVERSE);
-        carouselRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        carouselLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
         intake.setDirection(DcMotor.Direction.REVERSE);
+        intake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
         arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
-        //arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        arm.setTargetPosition(0);
+        armState = ArmState.AtZero;
+        arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        PIDFCoefficients armPidf = arm.getPIDFCoefficients(DcMotor.RunMode.RUN_TO_POSITION);
+
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
     }
 
-    void runArm()
+    void setArmTarget(int target)
     {
-        if (gamepad1.dpad_down)
-        {
-            armTarget = 0;
-            intake.setPower(-0.1);
+        armTarget = target;
 
-            Timer timer = new Timer();
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    if (within(intake.getPower(), -0.1, 0.01)) {
-                        intake.setPower(0.0);
-
-                    }
-                }
-            }, 1*1000);
-        }
-        else if (gamepad1.dpad_up)
-        {
-            armTarget = ARM_HIGH;
-            intake.setPower(0.0); // The dumping box can easily lift the intake
-        }
-        else if (gamepad1.dpad_right)
-        {
-            armTarget = ARM_LOW;
-            intake.setPower(0.0);
-        }
-
-        // Manual arm control
-        armTarget += -gamepad1.right_stick_y * ARM_MANUAL_MULTIPLIER;
-        armTarget += -gamepad2.right_stick_y * ARM_MANUAL_MULTIPLIER;
-
-        // Reset zero point on arm
-        if (gamepad2.a && arm.getMode() != DcMotor.RunMode.STOP_AND_RESET_ENCODER)
-        {
-            arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        }
-
-
-        arm.setTargetPosition(armTarget);
+        arm.setTargetPosition(target);
 
         if (arm.getMode() != DcMotor.RunMode.RUN_TO_POSITION)
         {
             arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         }
 
-        if (!within(arm.getCurrentPosition(), armTarget, 100) && armTarget != 0)
+        if (armTarget != 0)
         {
-            dumper.setPosition(DUMPER_HOLD); // Hold block
-        }
-
-        if (within(arm.getCurrentPosition(), 0, 20) && armTarget == 0)
-        {
-            arm.setPower(0.0); // Power is unneeded if it is going to neutral and near it
-        }
-        else if (arm.getTargetPosition() == 0)
-        {
-            //arm.setPower(0.1);
-            arm.setVelocity(400);
+            intake.setPower(0.0);
+            armState = ArmState.ToLevel;
+            armResetting = false;
         }
         else
         {
-            //arm.setPower(0.5);
-            arm.setVelocity(800);
+            armState = ArmState.ToLevel;
         }
     }
 
-    //todo: simplify
-    void runDumper()
+    void runArm()
     {
-        if (armTarget != 0)
-        {
-            if (armTarget != 0) {
-                if (p1.wasJustPressed(Button.A)) {
-                    dumper.setPosition(DUMPER_RELEASE);
-                } else if (!gamepad1.a && g1Prev.a) {
-                    dumper.setPosition(DUMPER_OPEN);
-                }
-            }
 
-        }
-        else if (gamepad1.a)
+
+        if (p1.wasJustPressed(Button.DPAD_DOWN))
         {
-            dumper.setPosition(DUMPER_HOLD);
+            setArmTarget(0);
+
+            // Spin intake to allow arm to move down, and automatically stop it after a couple seconds
+            intake.setPower(-0.1);
+
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    if (within(intake.getPower(), -0.1, 0.05)) {
+                        intake.setPower(0.0);
+                    }
+                }
+            }, 3*1000);
+        }
+        else if (p1.wasJustPressed(Button.DPAD_RIGHT))
+        {
+            setArmTarget(ARM_HIGH);
         }
         else
         {
-            //dumper.setPosition(DUMPER_HOLD);
+            if (armTarget == 0 && within(arm.getCurrentPosition(), armTarget, 50))
+            {
+                armState = ArmState.AtZero;
+
+                if (!armResetting) {
+                    armResetting = true;
+                    arm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                    arm.setPower(0.0);
+
+                    timer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            if (armResetting) {
+                                if (arm.getMode() != DcMotor.RunMode.STOP_AND_RESET_ENCODER) {
+                                    arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                                }
+                                armResetting = false;
+                            }
+                        }
+                    }, 500);
+                }
+            }
+            else if (armTarget == 0 && within(arm.getCurrentPosition(), armTarget, 200))
+            {
+                arm.setVelocity(ARM_VELOCITY_HOLD);
+            }
+            else if (armTarget == 0)
+            {
+                arm.setVelocity(ARM_VELOCITY_NEAR);
+            }
         }
 
-        // Manual dumper control
-        if (gamepad1.dpad_left)
+        // Manual arm control
+        if (gamepad1.right_stick_y != 0 || gamepad2.right_stick_y != 0)
+        {
+            setArmTarget((int)(armTarget + (gamepad1.right_stick_y * ARM_MANUAL_MULTIPLIER) +
+                    (gamepad2.right_stick_y * ARM_MANUAL_MULTIPLIER)));
+        }
+
+        if (armTarget != 0 && within(arm.getCurrentPosition(), armTarget, 150))
+        {
+            armState = ArmState.NearLevel;
+            arm.setVelocity(ARM_VELOCITY_NEAR);
+        }
+        else if (armTarget != 0 && within(arm.getCurrentPosition(), armTarget, 50))
+        {
+            armState = ArmState.AtLevel;
+            arm.setVelocity(ARM_VELOCITY_HOLD);
+        }
+        else if (armTarget != 0)
+        {
+            arm.setVelocity(ARM_VELOCITY_FAR);
+        }
+
+        // Reset zero point on arm
+        if (p2.wasJustPressed(Button.A))
+        {
+            arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        }
+    }
+
+
+    void runDumper()
+    {
+        if (gamepad2.left_stick_y != 0.0)
+        {
+            dumper.setPosition(dumper.getPosition() - (gamepad2.left_stick_y / 50));
+        }
+        else if (p1.wasJustPressed(Button.A))
+        {
+            dumper.setPosition(DUMPER_HOLD);
+        }
+        else if (p1.wasJustPressed(Button.X))
         {
             dumper.setPosition(DUMPER_OPEN);
         }
-        else if (gamepad2.dpad_down)
+        else if (p1.wasJustPressed(Button.B))
         {
-            dumper.setPosition(DUMPER_OPEN); // Allow intake
-        }
-        else if (gamepad2.dpad_right)
-        {
-            dumper.setPosition(DUMPER_HOLD); // Hold block
-        }
-        else if (gamepad2.dpad_up)
-        {
-            dumper.setPosition(DUMPER_RELEASE); // Release block
-        }
-        else if (gamepad2.left_stick_y != 0.0)
-        {
-            dumper.setPosition(dumper.getPosition() - (gamepad2.left_stick_y / 50));
+            dumper.setPosition(DUMPER_RELEASE);
+
+            /*timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    dumper.setPosition(DUMPER_OPEN);
+                }
+            }, 500);*/
         }
     }
 
     void runDrive()
     {
-        if (p1.wasJustPressed(Button.B))
+        if (p1.wasJustPressed(Button.Y))
         {
             useReversed = !useReversed;
         }
@@ -377,13 +376,31 @@ public abstract class TeleOpBase extends LinearOpMode {
 
         switch (currentMode) {
             case DRIVER_CONTROL:
-                drive.setWeightedDrivePower(
-                        new Pose2d(
-                                -gamepad1.left_stick_y,
-                                -gamepad1.left_stick_x,
-                                gamepad1.left_trigger - gamepad1.right_trigger
-                        )
-                );
+                if (p1.wasJustPressed(Button.Y))
+                {
+                    useReversed = !useReversed;
+                }
+
+                if (useReversed)
+                {
+                    drive.setWeightedDrivePower(
+                            new Pose2d(
+                                    -gamepad1.left_stick_y,
+                                    -gamepad1.left_stick_x,
+                                    gamepad1.left_trigger - gamepad1.right_trigger
+                            )
+                    );
+                }
+                else
+                {
+                    drive.setWeightedDrivePower(
+                            new Pose2d(
+                                    gamepad1.left_stick_y,
+                                    gamepad1.left_stick_x,
+                                    gamepad1.left_trigger - gamepad1.right_trigger
+                            )
+                    );
+                }
 
                 if (gamepad2.b) {
                     // If the A button is pressed on gamepad1, we generate a splineTo()
@@ -391,7 +408,7 @@ public abstract class TeleOpBase extends LinearOpMode {
                     // We switch the state to AUTOMATIC_CONTROL
 
                     Trajectory traj1 = drive.trajectoryBuilder(poseEstimate)
-                            .splineTo(targetAVector, targetAHeading)
+                            .splineTo(targetDuckHub.vec(), targetDuckHub.getHeading())
                             .build();
 
                     drive.followTrajectoryAsync(traj1);
@@ -435,16 +452,14 @@ public abstract class TeleOpBase extends LinearOpMode {
 
     void runCarousel()
     {
-        carouselLeft.setPower(gamepad1.x ? CAROUSEL_SPEED_CAP : 0.0 -
-                (gamepad1.y ? CAROUSEL_SPEED_CAP : 0.0));
-        carouselRight.setPower(gamepad1.x ? CAROUSEL_SPEED_CAP : 0.0 -
-                (gamepad1.y ? CAROUSEL_SPEED_CAP : 0.0));
+        carouselLeft.setPower(gamepad1.dpad_up ? CAROUSEL_SPEED_CAP : 0.0);
+                //(gamepad1.y ? CAROUSEL_SPEED_CAP : 0.0));
+        //carouselLeft.setVel
     }
 
     void runIntake()
     {
-        boolean leftBumperCurr = gamepad1.left_bumper;
-        if (leftBumperCurr && !g1Prev.left_bumper)
+        if (p1.wasJustPressed(Button.LEFT_BUMPER))
         {
             if (!within(intake.getPower(), INTAKE_POWER, 0.01))
             {
@@ -456,7 +471,7 @@ public abstract class TeleOpBase extends LinearOpMode {
             }
         }
 
-        if (within(intake.getPower(), INTAKE_POWER_EJECT, .01) && !gamepad1.right_bumper)
+        if (within(intake.getPower(), INTAKE_POWER_EJECT, .05) && !gamepad1.right_bumper)
         {
             intake.setPower(0.0);
         }
@@ -466,17 +481,24 @@ public abstract class TeleOpBase extends LinearOpMode {
         }
     }
 
+    static boolean logExtra = false;
+
     void dumpStats(boolean update)
     {
-        telemetry.addData("armPos", arm.getCurrentPosition());
-        telemetry.addData("armTarget ", armTarget);
-        telemetry.addData("armPower ", arm.getPower());
-        telemetry.addData("intakeSpeed ", intake.getPower());
-        telemetry.addData("Velocity ", drive.getWheelVelocities().get(3));
-
-        if (update)
+        if (logExtra)
         {
-            telemetry.update();
+            telemetry.addData("armPos", arm.getCurrentPosition());
+            telemetry.addData("armTarget ", armTarget);
+            telemetry.addData("armVelocity ", arm.getVelocity());
+            telemetry.addData("intakeSpeed ", intake.getPower());
+            telemetry.addData("intakeVelocity ", intake.getVelocity());
+            telemetry.addData("carouselVelocity ", carouselLeft.getVelocity());
+            telemetry.addData("wheelVelocity ", drive.getWheelVelocities().get(3));
+
+            if (update)
+            {
+                telemetry.update();
+            }
         }
     }
 

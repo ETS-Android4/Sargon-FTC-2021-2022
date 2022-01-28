@@ -31,6 +31,8 @@ package org.firstinspires.ftc.teamcode;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -116,7 +118,11 @@ public class TeleOpBlue extends TeleOpBase {
 
 
     @Override
-    public void runOpMode() {
+    public void runOpMode()
+    {
+        alliance = Constants.Alliance.Blue;
+        targetDuckHub = new Pose2d((-4.95 * 12), (4.9 * 12), Math.toRadians(90));
+
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         initMotors();
@@ -136,6 +142,9 @@ public class TeleOpBlue extends TeleOpBase {
 
         while (opModeIsActive() && !isStopRequested())
         {
+            p1.readButtons();
+            p2.readButtons();
+
             runArm();
 
             runDumper();

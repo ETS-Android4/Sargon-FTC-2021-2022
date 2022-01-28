@@ -27,7 +27,7 @@ public class TeamElementDetermination
     public OpenCvCamera frontWebcam = null;
     public TeamElementDetermination.Pipeline pipeline = null;
 
-    public TeamElementDetermination(HardwareMap hardwareMap, Telemetry _telemetry)
+    public TeamElementDetermination(HardwareMap hardwareMap, Telemetry _telemetry, Constants.Alliance alliance)
     {
         WebcamName frontWebcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
         frontWebcam = OpenCvCameraFactory.getInstance().createWebcam(frontWebcamName);
@@ -136,6 +136,11 @@ public class TeamElementDetermination
         @Override
         public Mat processFrame(Mat input)
         {
+
+
+
+
+
             region1 = input.submat(new Rect(region1_pointA, region1_pointB));
             region2 = input.submat(new Rect(region2_pointA, region2_pointB));
             region3 = input.submat(new Rect(region3_pointA, region3_pointB));
