@@ -136,7 +136,9 @@ public class TeamElementDetermination
         @Override
         public Mat processFrame(Mat input)
         {
+            //Mat redOnly = new Mat;
 
+            //org.opencv.core.Core.extractChannel(input, redOnly, 2);
 
 
 

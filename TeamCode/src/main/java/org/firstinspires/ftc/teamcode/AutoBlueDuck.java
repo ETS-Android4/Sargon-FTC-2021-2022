@@ -223,7 +223,6 @@ public class AutoBlueDuck extends LinearOpMode
 
         // Start moving arm to neutral
         arm.setTargetPosition(ARM_INTAKE);
-        dumper.setPosition(DUMPER_OPEN);
         arm.setVelocity(400);
         intake.setPower(-0.1);
         armState = ArmState.ToZero;
@@ -245,9 +244,11 @@ public class AutoBlueDuck extends LinearOpMode
 
 
 
-
+        dumper.setPosition(DUMPER_OPEN);
         carouselRight.setPower(0.0);
         carouselLeft.setPower(0.0);
+
+        sleep(1000);
 
 
         Constants.setRobotCurrentPose(drive.getPoseEstimate());
