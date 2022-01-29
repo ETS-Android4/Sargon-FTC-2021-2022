@@ -114,7 +114,8 @@ public class AutoBlueDuck extends LinearOpMode
         drive.setPoseEstimate(Constants.blueDuckStartingPose);
 
 
-
+        // MUST assemble trajectories after start, to catch barcode changes after init!
+        waitForStart();
 
 
 
@@ -124,7 +125,7 @@ public class AutoBlueDuck extends LinearOpMode
         double shippingHubHeading = Math.toRadians(0);
         TeamElementDetermination.BarcodePosition position = determiner.result();
 
-        if (position == TeamElementDetermination.BarcodePosition.Left)
+        if (position == TeamElementDetermination.BarcodePosition.Right)
         {
             armTarget = ARM_HIGH;
             shippingHubPos = new Vector2d(Constants.blueShippingHubX - Constants.armHighOffset - autoShippingOffset, Constants.blueShippingHubY);
@@ -134,7 +135,7 @@ public class AutoBlueDuck extends LinearOpMode
             armTarget = ARM_MEDIUM;
             shippingHubPos = new Vector2d(Constants.blueShippingHubX - Constants.armMedOffset - autoShippingOffset, Constants.blueShippingHubY);
         }
-        else if (position == TeamElementDetermination.BarcodePosition.Right)
+        else if (position == TeamElementDetermination.BarcodePosition.Left)
         {
             armTarget = ARM_LOW;
             shippingHubPos = new Vector2d(Constants.blueShippingHubX - Constants.armLowOffset - autoShippingOffset, Constants.blueShippingHubY);
@@ -164,7 +165,13 @@ public class AutoBlueDuck extends LinearOpMode
         // Move arm to neutral
         // Wait 4s
 
-        waitForStart();
+
+
+
+
+
+
+
 
 
         
@@ -228,6 +235,13 @@ public class AutoBlueDuck extends LinearOpMode
 
         drive.followTrajectorySequenceAsync(seq3); // Go to ending box, park completely
 
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                dumper.setPosition(DUMPER_OPEN);
+            }
+        }, 500);
+
         while (true)
         {
             drive.update();
@@ -242,7 +256,7 @@ public class AutoBlueDuck extends LinearOpMode
 
 
 
-        dumper.setPosition(DUMPER_OPEN);
+
         carouselRight.setPower(0.0);
         carouselLeft.setPower(0.0);
 
