@@ -3,6 +3,9 @@ package org.firstinspires.ftc.teamcode;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 @Config
 public final class Constants
@@ -10,6 +13,10 @@ public final class Constants
 
     public static TeamElementDetermination.BarcodePosition autoHeightDefault = TeamElementDetermination.BarcodePosition.Center;
     public static double autoShippingOffset = 2.0;
+
+    public static int DetectRedThreshold = 180;
+    public static int DetectBlueThreshold = 180;
+    public static int DetectXThreshold = 30;
 
     public static boolean within(double val, double target, double tolerance)
     {
@@ -25,6 +32,10 @@ public final class Constants
         Red,
         Blue
     }
+
+    public static Alliance alliance = Alliance.Blue;
+    public static HardwareMap hardwareMap = null;
+    public static Telemetry telemetry = null;
 
     public static final double robotRadius = 17.875 / 2; // Length from center of robot to back
 

@@ -41,7 +41,7 @@ public class AutoBlueWarehouse extends LinearOpMode
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
-        determiner = new TeamElementDetermination(hardwareMap, telemetry, Alliance.Blue);
+        determiner = new TeamElementDetermination(hardwareMap, telemetry);
         determiner.result();
 
         drive.setPoseEstimate(Constants.blueWarehouseStartingPose);

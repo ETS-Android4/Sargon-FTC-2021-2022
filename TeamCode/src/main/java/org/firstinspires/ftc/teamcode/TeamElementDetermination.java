@@ -1,5 +1,13 @@
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.teamcode.Constants.DetectBlueThreshold;
+import static org.firstinspires.ftc.teamcode.Constants.DetectRedThreshold;
+import static org.firstinspires.ftc.teamcode.Constants.DetectXThreshold;
+import static org.firstinspires.ftc.teamcode.Constants.alliance;
+import static org.firstinspires.ftc.teamcode.Constants.within;
+
+import static java.lang.Thread.sleep;
+
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -8,11 +16,13 @@ import org.opencv.core.Core;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.features2d.SimpleBlobDetector;
 import org.opencv.features2d.SimpleBlobDetector_Params;
+import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
@@ -27,7 +37,7 @@ public class TeamElementDetermination
     public OpenCvCamera frontWebcam = null;
     public TeamElementDetermination.Pipeline pipeline = null;
 
-    public TeamElementDetermination(HardwareMap hardwareMap, Telemetry _telemetry, Constants.Alliance alliance)
+    public TeamElementDetermination(HardwareMap hardwareMap, Telemetry _telemetry)
     {
         WebcamName frontWebcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
         frontWebcam = OpenCvCameraFactory.getInstance().createWebcam(frontWebcamName);
@@ -41,14 +51,17 @@ public class TeamElementDetermination
 
 
 
-    public BarcodePosition result()
+    public BarcodePosition result() throws InterruptedException
     {
+        while (!pipeline.isReady) {
+            sleep(100);
+        }
+
         return pipeline.getAnalysis();
     }
 
     enum BarcodePosition
     {
-        Unknown,
         Left,
         Center,
         Right
@@ -57,65 +70,15 @@ public class TeamElementDetermination
     public static class Pipeline extends OpenCvPipeline
     {
         Telemetry telemetry;
+
+        volatile boolean isReady = false;
+
         Pipeline(Telemetry _telemetry)
         {
             telemetry = _telemetry;
         }
 
-        static final Scalar WHITE = new Scalar(255, 255, 255);
 
-        /*
-         * The core values which define the location and size of the sample regions
-         */
-        static final Point REGION1_TOPLEFT_ANCHOR_POINT = new Point(0,0);
-        static final Point REGION2_TOPLEFT_ANCHOR_POINT = new Point(320 / 3,0);
-        static final Point REGION3_TOPLEFT_ANCHOR_POINT = new Point((320 / 3) * 2,0);
-        static final int REGION_WIDTH = 320/3;
-        static final int REGION_HEIGHT = 240;
-
-        /*
-         * Points which actually define the sample region rectangles, derived from above values
-         *
-         * Example of how points A and B work to define a rectangle
-         *
-         *   ------------------------------------
-         *   | (0,0) Point A                    |
-         *   |                                  |
-         *   |                                  |
-         *   |                                  |
-         *   |                                  |
-         *   |                                  |
-         *   |                                  |
-         *   |                  Point B (70,50) |
-         *   ------------------------------------
-         *
-         */
-        Point region1_pointA = new Point(
-                REGION1_TOPLEFT_ANCHOR_POINT.x,
-                REGION1_TOPLEFT_ANCHOR_POINT.y);
-        Point region1_pointB = new Point(
-                REGION1_TOPLEFT_ANCHOR_POINT.x + REGION_WIDTH,
-                REGION1_TOPLEFT_ANCHOR_POINT.y + REGION_HEIGHT);
-        Point region2_pointA = new Point(
-                REGION2_TOPLEFT_ANCHOR_POINT.x,
-                REGION2_TOPLEFT_ANCHOR_POINT.y);
-        Point region2_pointB = new Point(
-                REGION2_TOPLEFT_ANCHOR_POINT.x + REGION_WIDTH,
-                REGION2_TOPLEFT_ANCHOR_POINT.y + REGION_HEIGHT);
-        Point region3_pointA = new Point(
-                REGION3_TOPLEFT_ANCHOR_POINT.x,
-                REGION3_TOPLEFT_ANCHOR_POINT.y);
-        Point region3_pointB = new Point(
-                Math.min(REGION3_TOPLEFT_ANCHOR_POINT.x + REGION_WIDTH, 320),
-                REGION3_TOPLEFT_ANCHOR_POINT.y + REGION_HEIGHT);
-
-        /*
-         * Working variables
-         */
-        Mat region1, region2, region3;
-        Mat YCrCb = new Mat();
-        Mat Cb = new Mat();
-        int avg1, avg2, avg3;
 
         // Volatile since accessed by OpMode thread w/o synchronization
         private volatile BarcodePosition position = BarcodePosition.Left;
@@ -133,76 +96,58 @@ public class TeamElementDetermination
             processFrame(firstFrame);
         }
 
+
+        Mat hierarchy = new Mat();
+        Mat channelOnly = new Mat();
+
         @Override
         public Mat processFrame(Mat input)
         {
-            //Mat redOnly = new Mat;
+            org.opencv.core.Core.extractChannel(input, channelOnly, alliance == Constants.Alliance.Red ? 2 : 0);
 
-            //org.opencv.core.Core.extractChannel(input, redOnly, 2);
+            int threshold = alliance == Constants.Alliance.Red ? DetectRedThreshold : DetectBlueThreshold;
 
+            Imgproc.threshold(channelOnly, channelOnly, threshold, 255, 0);
 
+            List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+            Imgproc.findContours(channelOnly, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
-
-            region1 = input.submat(new Rect(region1_pointA, region1_pointB));
-            region2 = input.submat(new Rect(region2_pointA, region2_pointB));
-            region3 = input.submat(new Rect(region3_pointA, region3_pointB));
-
-            MatOfKeyPoint keyPoints = new MatOfKeyPoint();
-
-            detector.detect(input, keyPoints);
-
-            List<KeyPoint> pointList = keyPoints.toList();
-
-            telemetry.addData(">", Arrays.toString(pointList.toArray()));
-
-            /*
-             * Compute the average pixel value of each submat region. We're
-             * taking the average of a single channel buffer, so the value
-             * we need is at index 0. We could have also taken the average
-             * pixel value of the 3-channel image, and referenced the value
-             * at index 2 here.
-             */
-
-            double[] avgs1 = Core.mean(region1).val;
-            double[] avgs2 = Core.mean(region2).val;
-            double[] avgs3 = Core.mean(region3).val;
-
-            // Average every RGB channel together since white is #FFFFFF
-            double avg1 = mean(avgs1);
-            double avg2 = mean(avgs2);
-            double avg3 = mean(avgs3);
-
-            /*
-             * Find the max of the 3 averages
-             */
-            double maxOneTwo = Math.max(avg1, avg2);
-            double max = Math.max(maxOneTwo, avg3);
-
-            /*
-             * Now that we found the max, we actually need to go and
-             * figure out which sample region that value was from
-             */
-            if(max == avg1) // Was it from region 1?
+            contours.removeIf(c ->
             {
-                position = BarcodePosition.Left; // Record our analysis
-            }
-            else if(max == avg2) // Was it from region 2?
+                Rect bounds = Imgproc.boundingRect((Mat)(c));
+                return (bounds.width * bounds.height) < 500;
+            });
+
+            //telemetry.addData(">", Arrays.toString(contours.toArray()));
+
+            // Find two contours of somewhat similar size
+            for (int i = 0; i < contours.size(); i++)
             {
-                position = BarcodePosition.Center; // Record our analysis
-            }
-            else if(max == avg3) // Was it from region 3?
-            {
-                position = BarcodePosition.Right; // Record our analysis
+                Rect bounds = Imgproc.boundingRect((Mat)(contours.get(i)));
+
+                if (within(bounds.x, 93, DetectXThreshold) && within(bounds.x, 243, DetectXThreshold))
+                {
+                    position = BarcodePosition.Left;
+                }
+                if (within(bounds.x, 93, DetectXThreshold))
+                {
+                    position = BarcodePosition.Center;
+                }
+                else if (within(bounds.x, 243, DetectXThreshold))
+                {
+                    position = BarcodePosition.Right;
+                }
+                else
+                {
+                    // No tape visible?
+                    position = Constants.autoHeightDefault;
+                    telemetry.addData("!", "Could not find any tape!");
+                    telemetry.addData(">", Arrays.toString(contours.toArray()));
+                }
             }
 
-            telemetry.addData(">", String.format("%f %f %f %s", avg1, avg2, avg3, position.toString()));
-            telemetry.update();
+            isReady = true;
 
-            /*
-             * Render the 'input' buffer to the viewport. But note this is not
-             * simply rendering the raw camera feed, because we called functions
-             * to add some annotations to this buffer earlier up.
-             */
             return input;
         }
 

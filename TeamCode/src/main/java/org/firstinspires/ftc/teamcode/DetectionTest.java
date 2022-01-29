@@ -13,7 +13,9 @@ public class DetectionTest extends LinearOpMode
     @Override
     public void runOpMode() throws InterruptedException
     {
-        determiner = new TeamElementDetermination(hardwareMap, telemetry, Constants.Alliance.Blue);
+        determiner = new TeamElementDetermination(hardwareMap, telemetry);
+
+        Constants.alliance = Constants.Alliance.Red;
 
 
         waitForStart();

@@ -48,7 +48,7 @@ public class AutoRedDuck extends LinearOpMode
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
-        determiner = new TeamElementDetermination(hardwareMap, telemetry, Alliance.Red);
+        determiner = new TeamElementDetermination(hardwareMap, telemetry);
         determiner.result();
 
         drive.setPoseEstimate(Constants.redDuckStartingPose);

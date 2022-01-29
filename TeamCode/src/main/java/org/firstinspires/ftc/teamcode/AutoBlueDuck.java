@@ -108,7 +108,7 @@ public class AutoBlueDuck extends LinearOpMode
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
-        determiner = new TeamElementDetermination(hardwareMap, telemetry, Alliance.Blue);
+        determiner = new TeamElementDetermination(hardwareMap, telemetry);
         determiner.result();
 
         drive.setPoseEstimate(Constants.blueDuckStartingPose);
@@ -123,8 +123,6 @@ public class AutoBlueDuck extends LinearOpMode
         Vector2d shippingHubPos = new Vector2d((-2.5 * 12), (0.8 * 12));
         double shippingHubHeading = Math.toRadians(0);
         TeamElementDetermination.BarcodePosition position = determiner.result();
-
-        position = Constants.autoHeightDefault;
 
         if (position == TeamElementDetermination.BarcodePosition.Left)
         {
