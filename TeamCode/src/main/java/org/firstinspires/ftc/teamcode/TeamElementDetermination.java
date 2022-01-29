@@ -129,11 +129,11 @@ public class TeamElementDetermination
                 {
                     position = BarcodePosition.Left;
                 }
-                if (within(bounds.x, 93, DetectXThreshold))
+                if (within(bounds.x, 243, DetectXThreshold))
                 {
                     position = BarcodePosition.Center;
                 }
-                else if (within(bounds.x, 243, DetectXThreshold))
+                else if (within(bounds.x, 93, DetectXThreshold))
                 {
                     position = BarcodePosition.Right;
                 }
