@@ -127,12 +127,23 @@ public class MeepMeepTest {
 
                 // AutoBlueWarehouse.java
 
-                .followTrajectorySequence(drive ->
+                /*.followTrajectorySequence(drive ->
                                 drive.trajectorySequenceBuilder(redWarehouseStartingPose)
                                         .lineToLinearHeading(new Pose2d(shippingHubPos, Math.toRadians(135))) // In line with shipping hub
                                         .lineToLinearHeading(new Pose2d(redWarehouseStartingPoseX, redWarehouseStartingPoseY + 10, 0))
                                         .strafeRight(10)
                                         .forward(2.5 * 12)
+*/
+
+
+                .followTrajectorySequence(drive ->
+                                drive.trajectorySequenceBuilder(redDuckStartingPose)
+                                        .lineToLinearHeading(new Pose2d((-4.95 * 12), (-4.9 * 12),   Math.toRadians(270))) // Red duck carousel
+                                        .waitSeconds(4) // Wait for ducks to fall
+                                        .lineToLinearHeading(new Pose2d((-5 * 12), (-2 * 12), 0)) // In line with shipping hub
+                                        .strafeTo(shippingHubPos) // Approach shipping hub
+                                        .strafeTo(new Vector2d((-6 * 12) + 8, -(3 * 12))) // Return to scoring square
+
 
                 .build()
                 );

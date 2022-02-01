@@ -2,8 +2,8 @@ package org.firstinspires.ftc.teamcode;
 
 import static org.firstinspires.ftc.teamcode.Constants.DetectBlueThreshold;
 import static org.firstinspires.ftc.teamcode.Constants.DetectRedThreshold;
-import static org.firstinspires.ftc.teamcode.Constants.DetectXThreshold;
 import static org.firstinspires.ftc.teamcode.Constants.alliance;
+import static org.firstinspires.ftc.teamcode.Constants.telemetry;
 import static org.firstinspires.ftc.teamcode.Constants.within;
 
 import static java.lang.Thread.sleep;
@@ -39,12 +39,30 @@ public class TeamElementDetermination
 
     public TeamElementDetermination(HardwareMap hardwareMap, Telemetry _telemetry)
     {
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         WebcamName frontWebcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
-        frontWebcam = OpenCvCameraFactory.getInstance().createWebcam(frontWebcamName);
+        frontWebcam = OpenCvCameraFactory.getInstance().createWebcam(frontWebcamName, cameraMonitorViewId);
         pipeline = new Pipeline(_telemetry);
         frontWebcam.setPipeline(pipeline);
-        frontWebcam.openCameraDevice();
-        frontWebcam.startStreaming(320,240, OpenCvCameraRotation.UPRIGHT);
+
+        frontWebcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener()
+        {
+            @Override
+            public void onOpened()
+            {
+                frontWebcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
+            }
+
+            @Override
+            public void onError(int errorCode)
+            {
+                telemetry.addData("!", "FAILURE TO OPEN CAMERA!");
+                telemetry.update();
+
+                pipeline.position = Constants.autoHeightDefault;
+                pipeline.isReady = true;
+            }
+        });
     }
 
 
@@ -53,11 +71,12 @@ public class TeamElementDetermination
 
     public BarcodePosition result() throws InterruptedException
     {
-        while (!pipeline.isReady) {
+        while (!pipeline.isReady)
+        {
             sleep(100);
         }
 
-        return pipeline.getAnalysis();
+        return pipeline.position;
     }
 
     enum BarcodePosition
@@ -71,12 +90,13 @@ public class TeamElementDetermination
     {
         Telemetry telemetry;
 
-        volatile boolean isReady = false;
-
-        private volatile BarcodePosition position = BarcodePosition.Left;
+        public volatile boolean isReady = false;
+        public volatile BarcodePosition position = BarcodePosition.Left;
 
         Mat hierarchy = new Mat(); // Never used
         Mat channelOnly = new Mat();
+
+        boolean limitContours = false;
 
 
         Pipeline(Telemetry _telemetry)
@@ -91,8 +111,11 @@ public class TeamElementDetermination
             processFrame(firstFrame);
         }
 
-
-
+        @Override
+        public void onViewportTapped()
+        {
+            limitContours = !limitContours;
+        }
 
         @Override
         public Mat processFrame(Mat input)
@@ -108,6 +131,7 @@ public class TeamElementDetermination
 
             List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
             Imgproc.findContours(channelOnly, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+            List<MatOfPoint> allContours = new ArrayList<>(contours);
 
 
             List<Integer> sizes = new ArrayList<Integer>();
@@ -147,11 +171,11 @@ public class TeamElementDetermination
             {
                 Rect bounds = Imgproc.boundingRect((Mat)(contours.get(i)));
 
-                if (bounds.x < (xSize / 2))
+                if (bounds.x < Constants.DetectCenterXRightThreshold)
                 {
                     centerFound = true;
                 }
-                else if (bounds.x > (xSize / 2))
+                else if (bounds.x > Constants.DetectRightXLeftThreshold)
                 {
                     rightFound = true;
                 }
@@ -172,15 +196,15 @@ public class TeamElementDetermination
 
             isReady = true;
 
-            return input;
-        }
 
-        /*
-         * Call this from the OpMode thread to obtain the latest analysis
-         */
-        public BarcodePosition getAnalysis()
-        {
-            return position;
+            Imgproc.drawContours(channelOnly, limitContours ? contours : allContours, -1, new Scalar(0,255,0), 2);
+
+            Imgproc.line(channelOnly, new Point(Constants.DetectCenterXRightThreshold, 0),
+                    new Point(Constants.DetectCenterXRightThreshold, channelOnly.height()), new Scalar(0,127,0));
+            Imgproc.line(channelOnly, new Point(0, Constants.DectectTopThreshold),
+                    new Point(channelOnly.width(), Constants.DectectTopThreshold), new Scalar(0,127,0));
+
+            return input;
         }
 
         public static double mean(double[] arr) {

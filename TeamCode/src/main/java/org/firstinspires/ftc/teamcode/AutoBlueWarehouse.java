@@ -30,8 +30,8 @@ import java.util.TimerTask;
 @Autonomous(preselectTeleOp="TeleOpBlue")
 public class AutoBlueWarehouse extends LinearOpMode
 {
+    SampleMecanumDrive drive = null;
     private DcMotorEx carouselLeft = null;
-    private DcMotorEx carouselRight = null;
     private DcMotorEx intake = null;
     private Servo dumper = null;
     private DcMotorEx arm = null;
@@ -89,15 +89,25 @@ public class AutoBlueWarehouse extends LinearOpMode
         }
     }
 
-
-
     @Override
-    public void runOpMode() throws InterruptedException {
-        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+    public void runOpMode()
+    {
+        try {
+            runCaught();
+        }
+        catch (Exception e)
+        {
+            telemetry.addData("!", "OPMODE CRASHED: " + e.getMessage());
+        }
+    }
+
+    public void runCaught() throws InterruptedException {
+        drive = new SampleMecanumDrive(hardwareMap);
+
+        carouselLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselLeft");
+        carouselLeft.setDirection(DcMotor.Direction.FORWARD);
 
         intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
-        intake.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        intake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         intake.setDirection(DcMotor.Direction.REVERSE);
 
         arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
@@ -107,7 +117,6 @@ public class AutoBlueWarehouse extends LinearOpMode
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
         determiner = new TeamElementDetermination(hardwareMap, telemetry);
-        determiner.result();
 
         drive.setPoseEstimate(Constants.blueWarehouseStartingPose);
 
@@ -115,7 +124,7 @@ public class AutoBlueWarehouse extends LinearOpMode
 
 
         int armTarget = ARM_HIGH;
-        Vector2d shippingHubPos = Constants.blueShippingHubPos;
+        Vector2d shippingHubPos = drive.getPoseEstimate().vec();
         double shippingHubHeading = Math.toRadians(225);
         TeamElementDetermination.BarcodePosition position = determiner.result();
 
@@ -135,7 +144,8 @@ public class AutoBlueWarehouse extends LinearOpMode
             shippingHubPos = new Vector2d(Constants.blueShippingHubX + Constants.armLowSquareOffset, Constants.blueShippingHubY + Constants.armLowSquareOffset);
         }
 
-        final int armTargetFinal = armTarget;
+        final int armTargetFinal = armTarget; // Required for value to be used inside a lambda
+
 
         dumper.setPosition(DUMPER_HOLD);
 
@@ -167,10 +177,17 @@ public class AutoBlueWarehouse extends LinearOpMode
         sleep(2000);
 
         TrajectorySequence seq2 = drive.trajectorySequenceBuilder(drive.getPoseEstimate())
-                .lineToLinearHeading(new Pose2d(Constants.blueWarehouseStartingPoseX, Constants.blueWarehouseStartingPoseY + 6, Math.toRadians(10))) // In line with shipping hub
-                .forward(3 * 12)
+                .lineToLinearHeading(new Pose2d(Constants.blueWarehouseStartingPoseX, Constants.blueWarehouseStartingPoseY + 6, Math.toRadians(0))) // In line with shipping hub
+                .lineToLinearHeading(new Pose2d(Constants.blueWarehouseStartingPoseX + 3 * 12, Constants.blueWarehouseStartingPoseY + 6, Math.toRadians(0)))
                 .build();
         drive.followTrajectorySequence(seq2);
+
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                dumper.setPosition(DUMPER_OPEN);
+            }
+        }, 500);
 
         // Start moving arm to neutral
         arm.setTargetPosition(ARM_INTAKE);
@@ -181,6 +198,8 @@ public class AutoBlueWarehouse extends LinearOpMode
 
         intake.setPower(0.0);
         dumper.setPosition(DUMPER_OPEN);
+
+        sleep(1000);
 
         Constants.setRobotCurrentPose(drive.getPoseEstimate());
     }

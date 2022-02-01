@@ -21,6 +21,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.apache.commons.math3.exception.util.ExceptionContextProvider;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.Constants.*;
@@ -31,8 +32,8 @@ import java.util.TimerTask;
 @Autonomous(preselectTeleOp="TeleOpBlue")
 public class AutoBlueDuck extends LinearOpMode
 {
+    SampleMecanumDrive drive = null;
     private DcMotorEx carouselLeft = null;
-    private DcMotorEx carouselRight = null;
     private DcMotorEx intake = null;
     private Servo dumper = null;
     private DcMotorEx arm = null;
@@ -91,13 +92,23 @@ public class AutoBlueDuck extends LinearOpMode
     }
 
     @Override
-    public void runOpMode() throws InterruptedException {
-        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+    public void runOpMode()
+    {
+        try {
+            runCaught();
+        }
+        catch (Exception e)
+        {
+            telemetry.addData("!", "OPMODE CRASHED: " + e.getMessage());
+        }
+    }
+
+    public void runCaught() throws InterruptedException
+    {
+        drive = new SampleMecanumDrive(hardwareMap);
 
         carouselLeft = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselLeft");
         carouselLeft.setDirection(DcMotor.Direction.FORWARD);
-        carouselRight = (DcMotorEx)hardwareMap.get(DcMotor.class, "carouselRight");
-        carouselRight.setDirection(DcMotor.Direction.REVERSE);
 
         intake = (DcMotorEx)hardwareMap.get(DcMotor.class, "intake");
         intake.setDirection(DcMotor.Direction.REVERSE);
@@ -106,23 +117,17 @@ public class AutoBlueDuck extends LinearOpMode
         arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
         determiner = new TeamElementDetermination(hardwareMap, telemetry);
-        determiner.result();
 
         drive.setPoseEstimate(Constants.blueDuckStartingPose);
 
-
-        // MUST assemble trajectories after start, to catch barcode changes after init!
         waitForStart();
 
 
-
-
         armTarget = ARM_HIGH;
-        Vector2d shippingHubPos = new Vector2d((-2.5 * 12), (0.8 * 12));
+        Vector2d shippingHubPos = drive.getPoseEstimate().vec();
         double shippingHubHeading = Math.toRadians(0);
         TeamElementDetermination.BarcodePosition position = determiner.result();
 
@@ -142,15 +147,13 @@ public class AutoBlueDuck extends LinearOpMode
             shippingHubPos = new Vector2d(Constants.blueShippingHubX - Constants.armLowOffset, Constants.blueShippingHubY);
         }
 
-        final int armTargetFinal = armTarget;
+        final int armTargetFinal = armTarget; // Required for value to be used inside a lambda
 
 
         carouselLeft.setPower(-0.5);
-        carouselRight.setPower(0.5);
+        dumper.setPosition(DUMPER_HOLD); // Prevents block escape during lifting
 
-        dumper.setPosition(DUMPER_HOLD);
-
-        TrajectorySequence seq1 = drive.trajectorySequenceBuilder(Constants.blueDuckStartingPose)
+        TrajectorySequence seq1 = drive.trajectorySequenceBuilder(drive.getPoseEstimate())
                 .strafeTo(new Vector2d((-4.95 * 12), (4.9 * 12) )) // Blue duck carousel
                 .waitSeconds(4) // Wait for ducks to fall
                 .lineToLinearHeading(new Pose2d((-5 * 12), (2 * 12), 0)) // In line with shipping hub
@@ -196,9 +199,6 @@ public class AutoBlueDuck extends LinearOpMode
             }
         }
 
-
-
-
         // Release block
         dumper.setPosition(DUMPER_RELEASE);
         sleep(2000);
@@ -225,8 +225,6 @@ public class AutoBlueDuck extends LinearOpMode
         armState = ArmState.ToZero;
         sleep(4000); // Wait for arm to return
 
-
-
         while (true)
         {
             drive.update();
@@ -239,10 +237,6 @@ public class AutoBlueDuck extends LinearOpMode
             }
         }
 
-
-
-
-        carouselRight.setPower(0.0);
         carouselLeft.setPower(0.0);
 
         sleep(1000);

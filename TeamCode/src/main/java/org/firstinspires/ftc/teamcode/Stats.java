@@ -29,11 +29,14 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.arcrobotics.ftclib.hardware.RevIMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 
 
 /**
@@ -119,44 +122,17 @@ public class Stats extends LinearOpMode {
     }
 
     public void gamepadMove(double joyX, double joyY, double triggerL, double triggerR) {
-
-        // Tank Drive
-        /*
-        double r = Math.hypot(joyX, joyY);
-        double robotAngle = Math.atan2(joyY, joyX);
-        double yaw = triggerR - triggerL;
-
-        double drive = joyY;
-        double strafe = -joyX;
-        double twist = triggerL - triggerR;
-
-        double frontLeftPower = drive + strafe + twist;
-        double frontRightPower = -drive + strafe + twist;
-        double backLeftPower = drive - strafe + twist;
-        double backRightPower = -drive - strafe + twist;
-
-        driveLeft.setPower(- gamepad1.left_stick_y/2 + gamepad1.left_stick_x/2);
-        driveRight.setPower(- gamepad1.left_stick_y/2 - gamepad1.left_stick_x/2);
-        */
-
         // Mecanum Drive
         double r = Math.hypot(joyX, joyY);
         double robotAngle = Math.atan2(joyY, joyX);
         double yaw = triggerR - triggerL;
-        //double frontLeftPower = (r * Math.cos(robotAngle)) + yaw;
-        //double frontRightPower = (r * Math.sin(robotAngle)) - yaw;
-        //double backLeftPower = (r * Math.sin(robotAngle)) + yaw;
-        //double backRightPower = (r * Math.cos(robotAngle)) - yaw;
-
         double drive = joyY;
         double strafe = -joyX;
         double twist = triggerL - triggerR;
-
         double frontLeftPower = drive + strafe + twist;
         double frontRightPower = -drive + strafe + twist;
         double backLeftPower = drive - strafe + twist;
         double backRightPower = -drive - strafe + twist;
-
         driveFrontLeft.setPower(frontLeftPower);
         driveFrontRight.setPower(frontRightPower);
         driveBackLeft.setPower(backLeftPower);
@@ -188,17 +164,24 @@ public class Stats extends LinearOpMode {
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
+        RevIMU imu = new RevIMU(hardwareMap);
+
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
         waitForStart();
 
         while (opModeIsActive()) {
+            gamepadMove(gamepad1.left_stick_x, gamepad1.left_stick_y, gamepad1.left_trigger, gamepad1.right_trigger);
+
             telemetry.addLine("armPos" + arm.getCurrentPosition());
             telemetry.addLine("armTarget " + armTarget);
             telemetry.addLine("armVelocity" + arm.getVelocity());
-
             telemetry.addLine("dumperPos " + dumper.getPosition());
+
+            Acceleration accel = imu.getRevIMU().getAcceleration();
+            telemetry.addLine("accel " + (accel.xAccel + accel.yAccel + accel.zAccel));
+
 
             telemetry.update();
         }

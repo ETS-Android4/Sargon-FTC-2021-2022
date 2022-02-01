@@ -3,9 +3,13 @@ package org.firstinspires.ftc.teamcode;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+
+import java.util.TimerTask;
 
 @Config
 public final class Constants
@@ -16,7 +20,11 @@ public final class Constants
 
     public static int DetectRedThreshold = 180;
     public static int DetectBlueThreshold = 180;
-    public static int DetectXThreshold = 30;
+    public static int DetectCenterXRightThreshold = (320 / 2);
+    public static int DetectRightXLeftThreshold = (320 / 2);
+    public static int DectectTopThreshold = (240 / 4);
+
+
 
     public static boolean within(double val, double target, double tolerance)
     {
@@ -139,4 +147,5 @@ public final class Constants
         robotCurrentPose = pose;
         poseSet = true;
     }
+
 }
