@@ -73,9 +73,9 @@ public final class Constants
     public static double TRIGGER_POWER_SCALAR = 0.5;
 
 
-    public static final double armHighOffset = 30 - robotRadius;
-    public static final double armMedOffset = 37 - robotRadius;
-    public static final double armLowOffset = 38 - robotRadius;
+    public static final double armHighOffset = 30 - robotRadius + autoShippingOffset;
+    public static final double armMedOffset = 37 - robotRadius + autoShippingOffset;
+    public static final double armLowOffset = 38 - robotRadius + autoShippingOffset;
 
     public static final double armHighSquareOffset = Math.sqrt(0.5 * Math.pow(armHighOffset, 2));
     public static final double armMedSquareOffset = Math.sqrt(0.5 * Math.pow(armMedOffset, 2));

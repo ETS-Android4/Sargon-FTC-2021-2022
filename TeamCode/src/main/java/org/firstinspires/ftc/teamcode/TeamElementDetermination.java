@@ -73,37 +73,34 @@ public class TeamElementDetermination
 
         volatile boolean isReady = false;
 
+        private volatile BarcodePosition position = BarcodePosition.Left;
+
+        Mat hierarchy = new Mat(); // Never used
+        Mat channelOnly = new Mat();
+
+
         Pipeline(Telemetry _telemetry)
         {
             telemetry = _telemetry;
         }
 
 
-
-        // Volatile since accessed by OpMode thread w/o synchronization
-        private volatile BarcodePosition position = BarcodePosition.Left;
-
-        SimpleBlobDetector_Params params;
-        SimpleBlobDetector detector;
-
         @Override
         public void init(Mat firstFrame)
         {
-            params = new SimpleBlobDetector_Params();
-            //params.set_minArea(5);
-            detector = SimpleBlobDetector.create(params);
-
             processFrame(firstFrame);
         }
 
 
-        Mat hierarchy = new Mat();
-        Mat channelOnly = new Mat();
+
 
         @Override
         public Mat processFrame(Mat input)
         {
-            org.opencv.core.Core.extractChannel(input, channelOnly, alliance == Constants.Alliance.Red ? 2 : 0);
+            int xSize = input.width();
+            int ySize = input.height();
+
+            org.opencv.core.Core.extractChannel(input, channelOnly, alliance == Constants.Alliance.Red ? 0 : 2);
 
             int threshold = alliance == Constants.Alliance.Red ? DetectRedThreshold : DetectBlueThreshold;
 
@@ -112,38 +109,65 @@ public class TeamElementDetermination
             List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
             Imgproc.findContours(channelOnly, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
+
+            List<Integer> sizes = new ArrayList<Integer>();
+
+            for (int i = 0; i < contours.size(); i++)
+            {
+                Rect bounds = Imgproc.boundingRect((Mat) (contours.get(i)));
+
+
+                sizes.add(bounds.width * bounds.height);
+            }
+
             contours.removeIf(c ->
             {
                 Rect bounds = Imgproc.boundingRect((Mat)(c));
-                return (bounds.width * bounds.height) < 500;
+                if ((bounds.width * bounds.height) < 200)
+                {
+                    return true;
+                }
+
+                if (bounds.y < (ySize / 4))
+                {
+                    return true;
+                }
+
+                return false;
             });
 
             //telemetry.addData(">", Arrays.toString(contours.toArray()));
 
-            // Find two contours of somewhat similar size
+
+            boolean centerFound = false;
+            boolean rightFound = false;
+
+            // Look for two pieces of tape
             for (int i = 0; i < contours.size(); i++)
             {
                 Rect bounds = Imgproc.boundingRect((Mat)(contours.get(i)));
 
-                if (within(bounds.x, 93, DetectXThreshold) && within(bounds.x, 243, DetectXThreshold))
+                if (bounds.x < (xSize / 2))
                 {
-                    position = BarcodePosition.Left;
+                    centerFound = true;
                 }
-                if (within(bounds.x, 243, DetectXThreshold))
+                else if (bounds.x > (xSize / 2))
                 {
-                    position = BarcodePosition.Center;
+                    rightFound = true;
                 }
-                else if (within(bounds.x, 93, DetectXThreshold))
-                {
-                    position = BarcodePosition.Right;
-                }
-                else
-                {
-                    // No tape visible?
-                    position = Constants.autoHeightDefault;
-                    telemetry.addData("!", "Could not find any tape!");
-                    telemetry.addData(">", Arrays.toString(contours.toArray()));
-                }
+            }
+
+            if (centerFound && rightFound)
+            {
+                position = BarcodePosition.Left;
+            }
+            else if (centerFound && !rightFound)
+            {
+                position = BarcodePosition.Right;
+            }
+            else if (rightFound && !centerFound)
+            {
+                position = BarcodePosition.Center;
             }
 
             isReady = true;
