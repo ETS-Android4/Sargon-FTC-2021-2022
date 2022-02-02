@@ -29,6 +29,26 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.arcrobotics.ftclib.gamepad.GamepadEx;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.teamcode.TeleOpBase;
+
+import java.util.Timer;
+import java.util.TimerTask;
+
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -109,11 +129,49 @@ import java.util.TimerTask;
     // DriveSimple2
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="TeleOpRed", group="Linear OpMode")
 @com.acmerobotics.dashboard.config.Config
-public class TeleOpRed extends LinearOpMode
+public class TeleOpRed extends TeleOpBase
 {
 
-    @Override
-    public void runOpMode() {
+        @Override
+        public void runOpMode()
+        {
+            alliance = Constants.Alliance.Red;
+            targetDuckHub = new Pose2d((-4.95 * 12), (4.9 * 12), Math.toRadians(90));
 
-    }
+            telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+
+            initMotors();
+
+            p1 = new GamepadEx(gamepad1);
+            p2 = new GamepadEx(gamepad2);
+
+            //gamepad1.setJoystickDeadzone(0.1);
+
+
+            telemetry.addData("Status", "Initialized");
+            telemetry.update();
+
+            waitForStart();
+
+            if (isStopRequested()) return;
+
+            while (opModeIsActive() && !isStopRequested())
+            {
+                p1.readButtons();
+                p2.readButtons();
+
+                runArm();
+
+                runDumper();
+
+                runDriveSmart();
+
+                runCarousel();
+
+                runIntake();
+
+                dumpStats(true);
+
+            }
+        }
 }

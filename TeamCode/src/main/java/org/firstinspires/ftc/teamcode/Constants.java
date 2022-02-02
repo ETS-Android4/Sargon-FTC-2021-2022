@@ -49,9 +49,9 @@ public final class Constants
 
     public static double ARM_MANUAL_MULTIPLIER = 6.0;
     public static int ARM_INTAKE = 0;
-    public static int ARM_HIGH = -590;
-    public static int ARM_MEDIUM = -690;
-    public static int ARM_LOW = -830;
+    public static int ARM_HIGH = -630;
+    public static int ARM_MEDIUM = -800;
+    public static int ARM_LOW = -930;
 
     enum ArmState
     {

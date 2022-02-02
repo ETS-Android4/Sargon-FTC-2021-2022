@@ -12,9 +12,16 @@ import static org.firstinspires.ftc.teamcode.Constants.DUMPER_OPEN;
 import static org.firstinspires.ftc.teamcode.Constants.DUMPER_RELEASE;
 import static org.firstinspires.ftc.teamcode.Constants.autoShippingOffset;
 import static org.firstinspires.ftc.teamcode.Constants.within;
+import static org.firstinspires.ftc.teamcode.drive.DriveConstants.MAX_ANG_VEL;
+import static org.firstinspires.ftc.teamcode.drive.DriveConstants.MAX_VEL;
+import static org.firstinspires.ftc.teamcode.drive.DriveConstants.TRACK_WIDTH;
+import static org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive.getAccelerationConstraint;
+import static org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive.getSlowVelocityConstraint;
+import static org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive.getVelocityConstraint;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -22,9 +29,11 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.apache.commons.math3.exception.util.ExceptionContextProvider;
+import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.Constants.*;
+import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuilder;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -119,6 +128,7 @@ public class AutoBlueDuck extends LinearOpMode
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
+        Constants.alliance = Constants.Alliance.Blue;
         determiner = new TeamElementDetermination(hardwareMap, telemetry);
 
         drive.setPoseEstimate(Constants.blueDuckStartingPose);
@@ -153,7 +163,7 @@ public class AutoBlueDuck extends LinearOpMode
         carouselLeft.setPower(-0.5);
         dumper.setPosition(DUMPER_HOLD); // Prevents block escape during lifting
 
-        TrajectorySequence seq1 = drive.trajectorySequenceBuilder(drive.getPoseEstimate())
+        TrajectorySequence seq1 = new TrajectorySequenceBuilder(drive.getPoseEstimate(), getSlowVelocityConstraint(), getAccelerationConstraint(DriveConstants.MAX_ACCEL), MAX_ANG_VEL, DriveConstants.MAX_ANG_ACCEL)
                 .strafeTo(new Vector2d((-4.95 * 12), (4.9 * 12) )) // Blue duck carousel
                 .waitSeconds(4) // Wait for ducks to fall
                 .lineToLinearHeading(new Pose2d((-5 * 12), (2 * 12), 0)) // In line with shipping hub

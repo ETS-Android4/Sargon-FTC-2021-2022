@@ -325,6 +325,18 @@ public class SampleMecanumDrive extends MecanumDrive {
         ));
     }
 
+    public static TrajectoryVelocityConstraint getSlowVelocityConstraint()
+    {
+        double maxVel = DriveConstants.MAX_VEL;
+        double maxAngularVel = DriveConstants.MAX_ANG_VEL;
+        double trackWidth = DriveConstants.TRACK_WIDTH;
+
+        return new MinVelocityConstraint(Arrays.asList(
+                new AngularVelocityConstraint(maxAngularVel / 4),
+                new MecanumVelocityConstraint(maxVel / 4, trackWidth)
+        ));
+    }
+
     public static TrajectoryAccelerationConstraint getAccelerationConstraint(double maxAccel) {
         return new ProfileAccelerationConstraint(maxAccel);
     }

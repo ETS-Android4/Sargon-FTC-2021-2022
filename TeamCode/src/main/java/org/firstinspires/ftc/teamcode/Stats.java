@@ -160,6 +160,7 @@ public class Stats extends LinearOpMode {
         intake.setDirection(DcMotor.Direction.REVERSE);
         arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
         //arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");

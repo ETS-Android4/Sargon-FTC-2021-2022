@@ -51,6 +51,7 @@ import com.acmerobotics.roadrunner.util.Angle;
 import com.arcrobotics.ftclib.drivebase.MecanumDrive;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys.Button;
+import com.arcrobotics.ftclib.hardware.RevIMU;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -61,6 +62,7 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.teamcode.Constants;
 import org.firstinspires.ftc.teamcode.Constants.*;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDriveCancelable;
@@ -481,7 +483,7 @@ public abstract class TeleOpBase extends LinearOpMode {
         }
     }
 
-    static boolean logExtra = false;
+    public static boolean logExtra = true;
 
     void dumpStats(boolean update)
     {
@@ -495,7 +497,9 @@ public abstract class TeleOpBase extends LinearOpMode {
             telemetry.addData("carouselVelocity ", carouselLeft.getVelocity());
             telemetry.addData("wheelVelocity ", drive.getWheelVelocities().get(3));
 
-            if (update)
+            telemetry.addLine("accel " + drive.getAccel());
+
+            if (true)
             {
                 telemetry.update();
             }

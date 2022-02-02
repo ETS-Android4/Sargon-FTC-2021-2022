@@ -44,6 +44,7 @@ public class TeamElementDetermination
         frontWebcam = OpenCvCameraFactory.getInstance().createWebcam(frontWebcamName, cameraMonitorViewId);
         pipeline = new Pipeline(_telemetry);
         frontWebcam.setPipeline(pipeline);
+        frontWebcam.setViewportRenderer(OpenCvCamera.ViewportRenderer.GPU_ACCELERATED);
 
         frontWebcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener()
         {
@@ -94,7 +95,7 @@ public class TeamElementDetermination
         public volatile BarcodePosition position = BarcodePosition.Left;
 
         Mat hierarchy = new Mat(); // Never used
-        Mat channelOnly = new Mat();
+        //ArrayList<Mat> allChannels = new ArrayList<>(3);;
 
         boolean limitContours = false;
 
@@ -117,13 +118,20 @@ public class TeamElementDetermination
             limitContours = !limitContours;
         }
 
+        Mat channelOnly = new Mat();
+
         @Override
         public Mat processFrame(Mat input)
         {
-            int xSize = input.width();
-            int ySize = input.height();
+            int xSize = channelOnly.width();
+            int ySize = channelOnly.height();
 
             org.opencv.core.Core.extractChannel(input, channelOnly, alliance == Constants.Alliance.Red ? 0 : 2);
+
+            //Core.split(channelOnly, allChannels); // Mat src, ArrayList<Mat> dst
+            //channelOnly = allChannels.get(alliance == Constants.Alliance.Red ? 0 : 2);
+            //channelOnly = allChannels.get(limitContours ? 0 : 2);
+
 
             int threshold = alliance == Constants.Alliance.Red ? DetectRedThreshold : DetectBlueThreshold;
 
@@ -147,7 +155,7 @@ public class TeamElementDetermination
             contours.removeIf(c ->
             {
                 Rect bounds = Imgproc.boundingRect((Mat)(c));
-                if ((bounds.width * bounds.height) < 200)
+                if ((bounds.width * bounds.height) < 600)
                 {
                     return true;
                 }
@@ -197,14 +205,21 @@ public class TeamElementDetermination
             isReady = true;
 
 
-            Imgproc.drawContours(channelOnly, limitContours ? contours : allContours, -1, new Scalar(0,255,0), 2);
+            Imgproc.drawContours(channelOnly, limitContours ? contours : allContours, -1, new Scalar(127,127,127), 2);
 
             Imgproc.line(channelOnly, new Point(Constants.DetectCenterXRightThreshold, 0),
-                    new Point(Constants.DetectCenterXRightThreshold, channelOnly.height()), new Scalar(0,127,0));
+                    new Point(Constants.DetectCenterXRightThreshold, channelOnly.height()), new Scalar(127,127,127));
             Imgproc.line(channelOnly, new Point(0, Constants.DectectTopThreshold),
-                    new Point(channelOnly.width(), Constants.DectectTopThreshold), new Scalar(0,127,0));
+                    new Point(channelOnly.width(), Constants.DectectTopThreshold), new Scalar(127,127,127));
 
-            return input;
+            for (MatOfPoint i : allContours)
+            {
+                i.release();
+            }
+
+
+
+            return channelOnly;
         }
 
         public static double mean(double[] arr) {

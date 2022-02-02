@@ -116,6 +116,7 @@ public class AutoRedWarehouse extends LinearOpMode
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
+        Constants.alliance = Constants.Alliance.Red;
         determiner = new TeamElementDetermination(hardwareMap, telemetry);
 
         drive.setPoseEstimate(Constants.redWarehouseStartingPose);

@@ -434,4 +434,9 @@ public class SampleMecanumDriveCancelable extends MecanumDrive {
     public static TrajectoryAccelerationConstraint getAccelerationConstraint(double maxAccel) {
         return new ProfileAccelerationConstraint(maxAccel);
     }
+
+    public double getAccel()
+    {
+        return imu.getLinearAcceleration().xAccel + imu.getLinearAcceleration().yAccel + imu.getLinearAcceleration().zAccel;
+    }
 }
