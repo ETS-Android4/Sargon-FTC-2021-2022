@@ -41,9 +41,7 @@ public final class Constants
         Blue
     }
 
-    public static Alliance alliance = Alliance.Blue;
-    public static HardwareMap hardwareMap = null;
-    public static Telemetry telemetry = null;
+
 
     public static final double robotRadius = 17.875 / 2; // Length from center of robot to back
 
@@ -147,5 +145,4 @@ public final class Constants
         robotCurrentPose = pose;
         poseSet = true;
     }
-
 }

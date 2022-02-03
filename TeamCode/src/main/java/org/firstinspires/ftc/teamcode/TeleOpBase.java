@@ -44,6 +44,8 @@ import static org.firstinspires.ftc.teamcode.Constants.INTAKE_POWER_EJECT;
 import static org.firstinspires.ftc.teamcode.Constants.TRIGGER_POWER_SCALAR;
 import static org.firstinspires.ftc.teamcode.Constants.within;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
@@ -62,6 +64,7 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.teamcode.Constants;
 import org.firstinspires.ftc.teamcode.Constants.*;
@@ -125,52 +128,41 @@ import java.util.TimerTask;
     // Config: DriveSimple2
 
 @com.acmerobotics.dashboard.config.Config
-public abstract class TeleOpBase extends LinearOpMode {
-    ElapsedTime runtime = new ElapsedTime();
-    Timer timer = new Timer();
-
-    private SampleMecanumDriveCancelable drive;
-    private boolean useReversed = true;
-
-    // Used to spin duck discs
-    private DcMotorEx carouselLeft = null;
-
-    private DcMotorEx intake = null;
-
-    private int armTarget = 0;
-    private ArmState armState = ArmState.AtZero;
-    private DcMotorEx arm = null;
-    private boolean armResetting = false;
-
-
-    private Servo dumper = null;
-
-    Pose2d targetDuckHub = null;
-
-    Alliance alliance = Alliance.Blue;
-
-
+public abstract class TeleOpBase extends LinearOpMode
+{
     // Define 2 states, drive control or automatic control
     enum Mode {
         DRIVER_CONTROL,
         AUTOMATIC_CONTROL
     }
 
-    Mode currentMode = Mode.DRIVER_CONTROL;
 
-    // The coordinates we want the bot to automatically go to when we press the A button
-    Vector2d targetAVector = new Vector2d(45, 45);
-    // The heading we want the bot to end on for targetA
-    double targetAHeading = Math.toRadians(90);
+    ElapsedTime runtime = new ElapsedTime();
+    Timer timer = new Timer();
 
-    // The location we want the bot to automatically go to when we press the B button
-    Vector2d targetBVector = new Vector2d(-15, 25);
-
-    // The angle we want to align to when we press Y
-    double targetAngle = Math.toRadians(45);
+    Telemetry driveTelemetry;
+    Telemetry hubTelemetry;
 
     GamepadEx p1;
     GamepadEx p2;
+
+    private SampleMecanumDriveCancelable drive;
+    private boolean useReversed = true;
+    private Mode currentMode = Mode.DRIVER_CONTROL;
+
+    // Used to spin duck discs
+    private DcMotorEx carouselLeft;
+
+    private DcMotorEx intake;
+
+    private DcMotorEx arm;
+    private int armTarget = 0;
+    private ArmState armState = ArmState.AtZero;
+    private boolean armResetting = false;
+
+    private Servo dumper;
+
+    Alliance alliance = Alliance.Blue;
 
 
     public void initMotors()
@@ -403,43 +395,10 @@ public abstract class TeleOpBase extends LinearOpMode {
                             )
                     );
                 }
-
-                if (gamepad2.b) {
-                    // If the A button is pressed on gamepad1, we generate a splineTo()
-                    // trajectory on the fly and follow it
-                    // We switch the state to AUTOMATIC_CONTROL
-
-                    Trajectory traj1 = drive.trajectoryBuilder(poseEstimate)
-                            .splineTo(targetDuckHub.vec(), targetDuckHub.getHeading())
-                            .build();
-
-                    drive.followTrajectoryAsync(traj1);
-
-                    currentMode = Mode.AUTOMATIC_CONTROL;
-                } else if (gamepad2.x) {
-                    // If the B button is pressed on gamepad1, we generate a lineTo()
-                    // trajectory on the fly and follow it
-                    // We switch the state to AUTOMATIC_CONTROL
-
-                    Trajectory traj1 = drive.trajectoryBuilder(poseEstimate)
-                            .lineTo(targetBVector)
-                            .build();
-
-                    drive.followTrajectoryAsync(traj1);
-
-                    currentMode = Mode.AUTOMATIC_CONTROL;
-                } else if (gamepad2.y) {
-                    // If Y is pressed, we turn the bot to the specified angle to reach
-                    // targetAngle (by default, 45 degrees)
-
-                    drive.turnAsync(Angle.normDelta(targetAngle - poseEstimate.getHeading()));
-
-                    currentMode = Mode.AUTOMATIC_CONTROL;
-                }
                 break;
             case AUTOMATIC_CONTROL:
                 // If x is pressed, we break out of the automatic following
-                if (gamepad2.x) {
+                if (false) {
                     drive.cancelFollowing();
                     currentMode = Mode.DRIVER_CONTROL;
                 }
@@ -507,4 +466,57 @@ public abstract class TeleOpBase extends LinearOpMode {
     }
 
     abstract public void runOpMode();
+
+
+    public void runBaseCatched(Alliance alliance)
+    {
+        try {
+            runBase(alliance);
+        }
+        catch (Exception e)
+        {
+
+        }
+    }
+
+    public void runBase(Alliance alliance)
+    {
+        alliance = Constants.Alliance.Blue;
+
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+
+        initMotors();
+
+        p1 = new GamepadEx(gamepad1);
+        p2 = new GamepadEx(gamepad2);
+
+        //gamepad1.setJoystickDeadzone(0.1);
+
+
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        waitForStart();
+
+        if (isStopRequested()) return;
+
+        while (opModeIsActive() && !isStopRequested())
+        {
+            p1.readButtons();
+            p2.readButtons();
+
+            runArm();
+
+            runDumper();
+
+            runDriveSmart();
+
+            runCarousel();
+
+            runIntake();
+
+            dumpStats(true);
+
+        }
+    }
 }

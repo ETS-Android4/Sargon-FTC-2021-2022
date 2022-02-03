@@ -2,9 +2,8 @@ package org.firstinspires.ftc.teamcode;
 
 import static org.firstinspires.ftc.teamcode.Constants.DetectBlueThreshold;
 import static org.firstinspires.ftc.teamcode.Constants.DetectRedThreshold;
-import static org.firstinspires.ftc.teamcode.Constants.alliance;
-import static org.firstinspires.ftc.teamcode.Constants.telemetry;
 import static org.firstinspires.ftc.teamcode.Constants.within;
+import static org.firstinspires.ftc.teamcode.Constants.Alliance;
 
 import static java.lang.Thread.sleep;
 
@@ -34,15 +33,21 @@ import java.util.List;
 
 public class TeamElementDetermination
 {
-    public OpenCvCamera frontWebcam = null;
-    public TeamElementDetermination.Pipeline pipeline = null;
+    private Telemetry telemetry;
+    private Constants.Alliance alliance;
 
-    public TeamElementDetermination(HardwareMap hardwareMap, Telemetry _telemetry)
+    private OpenCvCamera frontWebcam;
+    private TeamElementDetermination.Pipeline pipeline;
+
+    public TeamElementDetermination(HardwareMap hardwareMap, Telemetry telemetry, Alliance alliance)
     {
+        this.telemetry = telemetry;
+        this.alliance = alliance;
+
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         WebcamName frontWebcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
         frontWebcam = OpenCvCameraFactory.getInstance().createWebcam(frontWebcamName, cameraMonitorViewId);
-        pipeline = new Pipeline(_telemetry);
+        pipeline = new Pipeline(telemetry, alliance);
         frontWebcam.setPipeline(pipeline);
         frontWebcam.setViewportRenderer(OpenCvCamera.ViewportRenderer.GPU_ACCELERATED);
 
@@ -63,6 +68,15 @@ public class TeamElementDetermination
                 pipeline.position = Constants.autoHeightDefault;
                 pipeline.isReady = true;
             }
+        });
+    }
+
+    public void close()
+    {
+        frontWebcam.closeCameraDeviceAsync(new OpenCvCamera.AsyncCameraCloseListener()
+        {
+            @Override
+            public void onClose() {}
         });
     }
 
@@ -89,36 +103,21 @@ public class TeamElementDetermination
 
     public static class Pipeline extends OpenCvPipeline
     {
-        Telemetry telemetry;
+        private Telemetry telemetry;
+        private Constants.Alliance alliance;
 
         public volatile boolean isReady = false;
         public volatile BarcodePosition position = BarcodePosition.Left;
 
-        Mat hierarchy = new Mat(); // Never used
-        //ArrayList<Mat> allChannels = new ArrayList<>(3);;
-
-        boolean limitContours = false;
-
-
-        Pipeline(Telemetry _telemetry)
-        {
-            telemetry = _telemetry;
-        }
-
-
-        @Override
-        public void init(Mat firstFrame)
-        {
-            processFrame(firstFrame);
-        }
-
-        @Override
-        public void onViewportTapped()
-        {
-            limitContours = !limitContours;
-        }
-
         Mat channelOnly = new Mat();
+        Mat hierarchy = new Mat(); // Never used
+
+
+        Pipeline(Telemetry telemetry, Constants.Alliance alliance)
+        {
+            this.telemetry = telemetry;
+            this.alliance = alliance;
+        }
 
         @Override
         public Mat processFrame(Mat input)
@@ -205,7 +204,7 @@ public class TeamElementDetermination
             isReady = true;
 
 
-            Imgproc.drawContours(channelOnly, limitContours ? contours : allContours, -1, new Scalar(127,127,127), 2);
+            Imgproc.drawContours(channelOnly, contours, -1, new Scalar(127,127,127), 2);
 
             Imgproc.line(channelOnly, new Point(Constants.DetectCenterXRightThreshold, 0),
                     new Point(Constants.DetectCenterXRightThreshold, channelOnly.height()), new Scalar(127,127,127));

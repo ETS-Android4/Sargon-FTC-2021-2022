@@ -34,6 +34,8 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.Constants.*;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuilder;
+import org.openftc.easyopencv.OpenCvCamera;
+import org.openftc.easyopencv.OpenCvCameraRotation;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -128,8 +130,7 @@ public class AutoBlueDuck extends LinearOpMode
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
 
-        Constants.alliance = Constants.Alliance.Blue;
-        determiner = new TeamElementDetermination(hardwareMap, telemetry);
+        determiner = new TeamElementDetermination(hardwareMap, telemetry, Alliance.Blue);
 
         drive.setPoseEstimate(Constants.blueDuckStartingPose);
 
@@ -163,7 +164,7 @@ public class AutoBlueDuck extends LinearOpMode
         carouselLeft.setPower(-0.5);
         dumper.setPosition(DUMPER_HOLD); // Prevents block escape during lifting
 
-        TrajectorySequence seq1 = new TrajectorySequenceBuilder(drive.getPoseEstimate(), getSlowVelocityConstraint(), getAccelerationConstraint(DriveConstants.MAX_ACCEL), MAX_ANG_VEL, DriveConstants.MAX_ANG_ACCEL)
+        TrajectorySequence seq1 = drive.trajectorySequenceBuilder(drive.getPoseEstimate())
                 .strafeTo(new Vector2d((-4.95 * 12), (4.9 * 12) )) // Blue duck carousel
                 .waitSeconds(4) // Wait for ducks to fall
                 .lineToLinearHeading(new Pose2d((-5 * 12), (2 * 12), 0)) // In line with shipping hub
@@ -253,5 +254,6 @@ public class AutoBlueDuck extends LinearOpMode
 
 
         Constants.setRobotCurrentPose(drive.getPoseEstimate());
+        determiner.close();
     }
 }
