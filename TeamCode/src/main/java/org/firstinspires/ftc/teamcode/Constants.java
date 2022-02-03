@@ -66,7 +66,7 @@ public final class Constants
 
 
     public static double DUMPER_OPEN = 0.0;
-    public static double DUMPER_HOLD = 0.18;
+    public static double DUMPER_HOLD = 0.15;
     public static double DUMPER_RELEASE = 0.35;
 
     public static double INTAKE_POWER = 0.5;
