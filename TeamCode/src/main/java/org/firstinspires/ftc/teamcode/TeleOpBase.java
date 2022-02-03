@@ -32,6 +32,7 @@ package org.firstinspires.ftc.teamcode;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_HIGH;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_LOW;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_MANUAL_MULTIPLIER;
+import static org.firstinspires.ftc.teamcode.Constants.ARM_POWER_MANUAL;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_VELOCITY_FAR;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_VELOCITY_HOLD;
 import static org.firstinspires.ftc.teamcode.Constants.ARM_VELOCITY_NEAR;
@@ -159,6 +160,7 @@ public abstract class TeleOpBase extends LinearOpMode
     private int armTarget = 0;
     private ArmState armState = ArmState.AtZero;
     private boolean armResetting = false;
+    private boolean armUseVelocity = true;
 
     private Servo dumper;
 
@@ -228,88 +230,86 @@ public abstract class TeleOpBase extends LinearOpMode
 
     void runArm()
     {
-
-
-        if (p1.wasJustPressed(Button.DPAD_DOWN))
+        if (p1.wasJustPressed(Button.RIGHT_STICK_BUTTON))
         {
-            setArmTarget(0);
-
-            // Spin intake to allow arm to move down, and automatically stop it after a couple seconds
-            intake.setPower(-0.1);
-
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    if (within(intake.getPower(), -0.1, 0.05)) {
-                        intake.setPower(0.0);
-                    }
-                }
-            }, 3*1000);
+            armUseVelocity = !armUseVelocity;
         }
-        else if (p1.wasJustPressed(Button.DPAD_RIGHT))
-        {
-            setArmTarget(ARM_HIGH);
+
+        if (armUseVelocity) {
+
+            if (p1.wasJustPressed(Button.DPAD_DOWN)) {
+                setArmTarget(0);
+
+                // Spin intake to allow arm to move down, and automatically stop it after a couple seconds
+                intake.setPower(-0.1);
+
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        if (within(intake.getPower(), -0.1, 0.05)) {
+                            intake.setPower(0.0);
+                        }
+                    }
+                }, 3 * 1000);
+            } else if (p1.wasJustPressed(Button.DPAD_RIGHT)) {
+                setArmTarget(ARM_HIGH);
+            } else {
+                if (armTarget == 0 && within(arm.getCurrentPosition(), armTarget, 50)) {
+                    armState = ArmState.AtZero;
+
+                    if (!armResetting) {
+                        armResetting = true;
+                        arm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                        arm.setPower(0.0);
+
+                        timer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                if (armResetting) {
+                                    if (arm.getMode() != DcMotor.RunMode.STOP_AND_RESET_ENCODER) {
+                                        arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                                    }
+                                    armResetting = false;
+                                }
+                            }
+                        }, 500);
+                    }
+                } else if (armTarget == 0 && within(arm.getCurrentPosition(), armTarget, 200)) {
+                    arm.setVelocity(ARM_VELOCITY_HOLD);
+                } else if (armTarget == 0) {
+                    arm.setVelocity(ARM_VELOCITY_NEAR);
+                }
+            }
+
+            // Manual arm control
+            if (gamepad1.right_stick_y != 0 || gamepad2.right_stick_y != 0) {
+                setArmTarget((int) (armTarget + (gamepad1.right_stick_y * ARM_MANUAL_MULTIPLIER) +
+                        (gamepad2.right_stick_y * ARM_MANUAL_MULTIPLIER)));
+            }
+
+            if (armTarget != 0 && within(arm.getCurrentPosition(), armTarget, 150)) {
+                armState = ArmState.NearLevel;
+                arm.setVelocity(ARM_VELOCITY_NEAR);
+            } else if (armTarget != 0 && within(arm.getCurrentPosition(), armTarget, 50)) {
+                armState = ArmState.AtLevel;
+                arm.setVelocity(ARM_VELOCITY_HOLD);
+            } else if (armTarget != 0) {
+                arm.setVelocity(ARM_VELOCITY_FAR);
+            }
+
+            // Reset zero point on arm
+            if (p2.wasJustPressed(Button.A)) {
+                arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            }
         }
         else
         {
-            if (armTarget == 0 && within(arm.getCurrentPosition(), armTarget, 50))
-            {
-                armState = ArmState.AtZero;
-
-                if (!armResetting) {
-                    armResetting = true;
-                    arm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-                    arm.setPower(0.0);
-
-                    timer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            if (armResetting) {
-                                if (arm.getMode() != DcMotor.RunMode.STOP_AND_RESET_ENCODER) {
-                                    arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                                }
-                                armResetting = false;
-                            }
-                        }
-                    }, 500);
-                }
+            if (gamepad1.right_stick_y != 0 || gamepad2.right_stick_y != 0) {
+                setArmTarget((int) (armTarget + (gamepad1.right_stick_y * ARM_MANUAL_MULTIPLIER) +
+                        (gamepad2.right_stick_y * ARM_MANUAL_MULTIPLIER)));
             }
-            else if (armTarget == 0 && within(arm.getCurrentPosition(), armTarget, 200))
-            {
-                arm.setVelocity(ARM_VELOCITY_HOLD);
-            }
-            else if (armTarget == 0)
-            {
-                arm.setVelocity(ARM_VELOCITY_NEAR);
-            }
-        }
 
-        // Manual arm control
-        if (gamepad1.right_stick_y != 0 || gamepad2.right_stick_y != 0)
-        {
-            setArmTarget((int)(armTarget + (gamepad1.right_stick_y * ARM_MANUAL_MULTIPLIER) +
-                    (gamepad2.right_stick_y * ARM_MANUAL_MULTIPLIER)));
-        }
-
-        if (armTarget != 0 && within(arm.getCurrentPosition(), armTarget, 150))
-        {
-            armState = ArmState.NearLevel;
-            arm.setVelocity(ARM_VELOCITY_NEAR);
-        }
-        else if (armTarget != 0 && within(arm.getCurrentPosition(), armTarget, 50))
-        {
-            armState = ArmState.AtLevel;
-            arm.setVelocity(ARM_VELOCITY_HOLD);
-        }
-        else if (armTarget != 0)
-        {
-            arm.setVelocity(ARM_VELOCITY_FAR);
-        }
-
-        // Reset zero point on arm
-        if (p2.wasJustPressed(Button.A))
-        {
-            arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            arm.setPower(ARM_POWER_MANUAL);
         }
     }
 

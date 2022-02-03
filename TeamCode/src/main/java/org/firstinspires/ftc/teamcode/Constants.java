@@ -63,6 +63,7 @@ public final class Constants
     public static double ARM_VELOCITY_HOLD = 100;
     public static double ARM_VELOCITY_NEAR = 500;
     public static double ARM_VELOCITY_FAR = 1600;
+    public static double ARM_POWER_MANUAL = 0.5;
 
 
     public static double DUMPER_OPEN = 0.0;
