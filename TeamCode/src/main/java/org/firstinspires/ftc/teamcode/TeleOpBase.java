@@ -211,6 +211,22 @@ public abstract class TeleOpBase extends LinearOpMode
         armTarget = target;
 
         arm.setTargetPosition(target);
+
+        if (arm.getMode() != DcMotor.RunMode.RUN_TO_POSITION)
+        {
+            arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        }
+
+        if (armTarget != 0)
+        {
+            intake.setPower(0.0);
+            armState = ArmState.ToLevel;
+            armResetting = false;
+        }
+        else
+        {
+            armState = ArmState.ToLevel;
+        }
     }
 
     void runArm()
@@ -274,11 +290,6 @@ public abstract class TeleOpBase extends LinearOpMode
                 }
             }
 
-            // Manual arm control
-            if (gamepad1.right_stick_y != 0 || gamepad2.right_stick_y != 0) {
-                setArmTarget((int) (armTarget + (gamepad1.right_stick_y * ARM_MANUAL_MULTIPLIER) +
-                        (gamepad2.right_stick_y * ARM_MANUAL_MULTIPLIER)));
-            }
 
             if (armTarget != 0 && within(arm.getCurrentPosition(), armTarget, 150)) {
                 armState = ArmState.NearLevel;
