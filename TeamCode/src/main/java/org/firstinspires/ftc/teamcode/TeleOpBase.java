@@ -193,14 +193,15 @@ public abstract class TeleOpBase extends LinearOpMode
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         arm = (DcMotorEx)hardwareMap.get(DcMotor.class, "arm");
-        arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         arm.setTargetPosition(0);
+        armTarget = 0;
         armState = ArmState.AtZero;
         arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        arm.setVelocity(ARM_VELOCITY_NEAR);
 
         PIDFCoefficients armPidf = arm.getPIDFCoefficients(DcMotor.RunMode.RUN_TO_POSITION);
-
 
         dumper = (Servo)hardwareMap.get(Servo.class, "dumper");
     }
@@ -210,22 +211,6 @@ public abstract class TeleOpBase extends LinearOpMode
         armTarget = target;
 
         arm.setTargetPosition(target);
-
-        if (arm.getMode() != DcMotor.RunMode.RUN_TO_POSITION)
-        {
-            arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        }
-
-        if (armTarget != 0)
-        {
-            intake.setPower(0.0);
-            armState = ArmState.ToLevel;
-            armResetting = false;
-        }
-        else
-        {
-            armState = ArmState.ToLevel;
-        }
     }
 
     void runArm()
@@ -233,6 +218,18 @@ public abstract class TeleOpBase extends LinearOpMode
         if (p1.wasJustPressed(Button.RIGHT_STICK_BUTTON))
         {
             armUseVelocity = !armUseVelocity;
+
+            if (armUseVelocity)
+            {
+                arm.setTargetPosition(armTarget);
+                arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                arm.setVelocity(ARM_VELOCITY_NEAR);
+            }
+            else
+            {
+                arm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            }
         }
 
         if (armUseVelocity) {
@@ -274,10 +271,6 @@ public abstract class TeleOpBase extends LinearOpMode
                             }
                         }, 500);
                     }
-                } else if (armTarget == 0 && within(arm.getCurrentPosition(), armTarget, 200)) {
-                    arm.setVelocity(ARM_VELOCITY_HOLD);
-                } else if (armTarget == 0) {
-                    arm.setVelocity(ARM_VELOCITY_NEAR);
                 }
             }
 
@@ -289,12 +282,8 @@ public abstract class TeleOpBase extends LinearOpMode
 
             if (armTarget != 0 && within(arm.getCurrentPosition(), armTarget, 150)) {
                 armState = ArmState.NearLevel;
-                arm.setVelocity(ARM_VELOCITY_NEAR);
             } else if (armTarget != 0 && within(arm.getCurrentPosition(), armTarget, 50)) {
                 armState = ArmState.AtLevel;
-                arm.setVelocity(ARM_VELOCITY_HOLD);
-            } else if (armTarget != 0) {
-                arm.setVelocity(ARM_VELOCITY_FAR);
             }
 
             // Reset zero point on arm
@@ -304,12 +293,7 @@ public abstract class TeleOpBase extends LinearOpMode
         }
         else
         {
-            if (gamepad1.right_stick_y != 0 || gamepad2.right_stick_y != 0) {
-                setArmTarget((int) (armTarget + (gamepad1.right_stick_y * ARM_MANUAL_MULTIPLIER) +
-                        (gamepad2.right_stick_y * ARM_MANUAL_MULTIPLIER)));
-            }
-
-            arm.setPower(ARM_POWER_MANUAL);
+            arm.setPower(p1.getRightY());
         }
     }
 
@@ -457,6 +441,12 @@ public abstract class TeleOpBase extends LinearOpMode
             telemetry.addData("wheelVelocity ", drive.getWheelVelocities().get(3));
 
             telemetry.addLine("accel " + drive.getAccel());
+
+
+            PIDFCoefficients armPidf = arm.getPIDFCoefficients(DcMotor.RunMode.RUN_TO_POSITION);
+            telemetry.addLine(String.format("Arm %f %f %f %f", armPidf.p, armPidf.i, armPidf.d, armPidf.f));
+
+
 
             if (true)
             {
